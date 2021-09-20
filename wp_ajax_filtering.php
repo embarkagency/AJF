@@ -220,9 +220,14 @@ add_action('init', function () {
                     $atts = $data->get_params();
                     $atts["post_type"] = $ajf_post_type;
                     $render = render_grid_items($atts, $ajf_data_type);
-                    return array(
+
+                    $result = new WP_REST_Response(array(
                         "html" => $render["html"],
-                    );
+                    ), 200);
+
+                    $result->set_headers(array('Cache-Control' => 'max-age=3600'));
+
+                    return $result;
                 },
             ));
         });
