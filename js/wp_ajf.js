@@ -19,7 +19,7 @@ jQuery(document).ready(function($){
 		atts.count = post_types[post_type].post_count;
 		atts.post_type = post_type;
 
-		const archive_url = new URL("https://csqddev.com.au/aoh/wp-json/ajf_get/" + post_type);
+		const archive_url = new URL(ajf_rest_url + "/" + post_type);
 
 		for(const property in atts) {
 			archive_url.searchParams.set(property, atts[property]);

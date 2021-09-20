@@ -229,3 +229,11 @@ add_action('init', function () {
     }
 
 });
+
+add_action('wp_footer', function () {
+    ?>
+	<script>
+		window.ajf_rest_url = '<?=get_rest_url(null, 'ajf_get');?>';
+	</script>
+	<?php
+});
