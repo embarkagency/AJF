@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
 add_action('wp_enqueue_scripts', 'wp_ajf_init');
 function wp_ajf_init()
 {
-    wp_enqueue_script('wp-ajf-js', plugins_url('/js/wp_ajf.js', __FILE__));
+    wp_enqueue_script('wp-ajf-js', plugins_url('/js/wp_ajf.js', __FILE__), array('jquery'));
 }
 
 $WP_AJF_DATA = [];
@@ -116,17 +116,22 @@ function render_grid_items($atts, $post_data)
 
     $output = '';
     $container_class = isset($post_data["class"]) ? $post_data["class"] : "archive-grid";
-    $output .= '<div class="' . $container_class . '">';
-    foreach ($items as $details) {
-        if (isset($post_data["render"])) {
-            $output .= ($post_data["render"])($details);
+
+    if (count($items) > 0) {
+        $output .= '<div class="' . $container_class . '">';
+        foreach ($items as $details) {
+            if (isset($post_data["render"])) {
+                $output .= ($post_data["render"])($details);
+            }
         }
-    }
-    $output .= '</div>';
-    if (isset($post_data["view_more"]) && $count < $total) {
-        $output .= '<div class="view-more-container">';
-        $output .= '<button class="view-more-button" data-post-type="' . $atts["post_type"] . '">' . $post_data["view_more"] . '</button>';
         $output .= '</div>';
+        if (isset($post_data["view_more"]) && $count < $total) {
+            $output .= '<div class="view-more-container">';
+            $output .= '<button class="view-more-button" data-post-type="' . $atts["post_type"] . '">' . $post_data["view_more"] . '</button>';
+            $output .= '</div>';
+        }
+    } else {
+        $output .= '<div class="no-results">' . (isset($post_data["no_results"]) ? $post_data["no_results"] : "No results found") . '</h4>';
     }
 
     return ["html" => $output];
@@ -154,15 +159,23 @@ add_action('init', function () {
                 foreach ($filter_options as $filter_key => $filter) {
                     $output .= '<div class="filter-option">';
                     if (isset($filter->name)) {
-                        $output .= '<label for="plan-filter-' . $filter_key . '">' . $filter->name . '</label>';
+                        $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
                     }
                     $output .= '<div class="filter-select-wrapper">';
-                    $output .= '<select id="plan-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '">';
+                    if (isset($filter->icon)) {
+                        $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
+                    }
+                    $output .= '<select id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '">';
                     $output .= '<option value="">Any</option>';
                     foreach ($filter->options as $option) {
                         $output .= '<option value="' . $option . '">' . $option . '</option>';
                     }
                     $output .= '</select>';
+
+                    $output .= '<div class="filter-chevron">';
+                    $output .= '<i class="fal fa-chevron-down"></i>';
+                    $output .= '</div>';
+
                     $output .= '</div>';
 
                     $output .= '</div>';

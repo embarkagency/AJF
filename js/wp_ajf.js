@@ -1,6 +1,4 @@
-// Document Ready Stuff
 jQuery(document).ready(function($){
-    // Web wizardry goes here
 
 	let post_types = {};
 	
