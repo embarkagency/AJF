@@ -20,7 +20,7 @@ function wp_ajf_init()
 
 $WP_AJF_DATA = [];
 
-function register_grid($post_type, $default_data)
+function register_grid($post_type, $default_data = [])
 {
     global $WP_AJF_DATA;
 
@@ -63,15 +63,22 @@ function real_register_filters($post_type, $filters)
         foreach ($filters as $filter_key => $filter_data) {
             if (isset($plan_details[$filter_key])) {
                 $filters[$filter_key] = (object) $filters[$filter_key];
-                $filters[$filter_key]->options[] = $plan_details[$filter_key];
+                if ($filters[$filter_key]->type === "select") {
+                    if (!isset($filters[$filter_key]->options)) {
+                        $filter[$filter_key]->options = [];
+                    }
+                    $filters[$filter_key]->options[] = $plan_details[$filter_key];
+                }
             }
         }
     endwhile;
     wp_reset_postdata();
 
     foreach ($filters as $filter_key => $filter_data) {
-        $filter_data->options = array_unique($filter_data->options);
-        sort($filter_data->options);
+        if ($filter_data->type === "select") {
+            $filter_data->options = array_unique($filter_data->options);
+            sort($filter_data->options);
+        }
     }
 
     return $filters;
@@ -79,17 +86,28 @@ function real_register_filters($post_type, $filters)
 
 function render_grid_items($atts, $post_data)
 {
+    $output = '';
+    $search = isset($_GET["search"]) ? $_GET["search"] : null;
+    unset($_GET["search"]);
     $loop = new WP_Query([
+        's' => null,
         'post_type' => $atts["post_type"],
         'post_status' => 'publish',
         'posts_per_page' => -1,
         'orderby' => 'menu_order',
         'order' => 'ASC',
     ]);
+    if ($search) {
+        $_GET["search"] = $search;
+    }
     $items = [];
     while ($loop->have_posts()): $loop->the_post();
         $id = get_the_ID();
-        $details = ($post_data["get_details"])($id);
+        if (isset($post_data["get_details"])) {
+            $details = ($post_data["get_details"])($id);
+        } else {
+            $output .= 'Please specify a render function';
+        }
 
         if (isset($post_data["filters"])) {
             $filter_options = $post_data["filters"];
@@ -110,11 +128,13 @@ function render_grid_items($atts, $post_data)
     endwhile;
     wp_reset_postdata();
 
-    $count = isset($atts["count"]) && !empty($atts["count"]) ? intval($atts["count"]) : 10;
+    $count = isset($atts["count"]) && !empty($atts["count"]) ? intval($atts["count"]) : -1;
     $total = count($items);
-    $items = array_slice($items, 0, $count);
 
-    $output = '';
+    if ($count > 0) {
+        $items = array_slice($items, 0, $count);
+    }
+
     $container_class = isset($post_data["class"]) ? $post_data["class"] : "archive-grid";
 
     if (count($items) > 0) {
@@ -161,22 +181,33 @@ add_action('init', function () {
                     if (isset($filter->name)) {
                         $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
                     }
-                    $output .= '<div class="filter-select-wrapper">';
-                    if (isset($filter->icon)) {
-                        $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
-                    }
-                    $output .= '<select id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '">';
-                    $output .= '<option value="">Any</option>';
-                    foreach ($filter->options as $option) {
-                        $output .= '<option value="' . $option . '">' . $option . '</option>';
-                    }
-                    $output .= '</select>';
 
-                    $output .= '<div class="filter-chevron">';
-                    $output .= '<i class="fal fa-chevron-down"></i>';
-                    $output .= '</div>';
+                    $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '"';
 
-                    $output .= '</div>';
+                    $get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
+
+                    if ($filter->type === "text") {
+                        $output .= '<div class="filter-text-wrapper">';
+                        $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
+                        $output .= '</div>';
+                    } else if ($filter->type === "select") {
+                        $output .= '<div class="filter-select-wrapper">';
+                        if (isset($filter->icon)) {
+                            $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
+                        }
+                        $output .= '<select' . $default_props . '>';
+                        $output .= '<option value="">Any</option>';
+                        foreach ($filter->options as $option) {
+                            $output .= '<option value="' . $option . '" ' . (isset($get_value) && $get_value === $option ? 'selected' : '') . '>' . $option . '</option>';
+                        }
+                        $output .= '</select>';
+
+                        $output .= '<div class="filter-chevron">';
+                        $output .= '<i class="fal fa-chevron-down"></i>';
+                        $output .= '</div>';
+
+                        $output .= '</div>';
+                    }
 
                     $output .= '</div>';
                 }
@@ -197,10 +228,15 @@ add_action('init', function () {
 
             $defaults = array_merge([
                 "post_type" => $ajf_post_type,
-                "count" => $ajf_data_type["count"],
+                "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
             ], $defaults);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
+
+            foreach ($_GET as $get_key => $get_value) {
+                $atts[$get_key] = $get_value;
+            }
+
             $render = render_grid_items($atts, $ajf_data_type);
 
             $output = '';
@@ -209,7 +245,6 @@ add_action('init', function () {
             $output .= '</div>';
 
             return $output;
-
         });
 
         add_action('rest_api_init', function () use ($ajf_post_type, $ajf_data_type) {
