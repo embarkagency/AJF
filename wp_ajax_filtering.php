@@ -106,19 +106,16 @@ function render_grid_items($atts, $post_data)
         if (isset($post_data["get_details"])) {
             $details = ($post_data["get_details"])($id);
         } else {
-            $output .= 'Please specify a render function';
+            $output .= 'Please specify detail getter';
         }
-
         if (isset($post_data["filters"])) {
             $filter_options = $post_data["filters"];
             $matches = true;
-
             foreach ($filter_options as $filter) {
                 if (!($filter->matches)($atts, $details)) {
                     $matches = false;
                 }
             }
-
             if ($matches) {
                 $items[] = $details;
             }
