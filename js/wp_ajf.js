@@ -75,5 +75,4 @@ jQuery(document).ready(function($){
 	}
 	
 	window.AJF = new AJF_class();
-	
 });
