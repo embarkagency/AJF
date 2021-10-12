@@ -54,6 +54,7 @@ function real_register_filters($post_type, $filters)
     $args = array(
         'post_type' => $post_type,
         'post_status' => 'publish',
+        'posts_per_page' => -1,
     );
 
     $loop = new WP_Query($args);
@@ -84,46 +85,79 @@ function real_register_filters($post_type, $filters)
     return $filters;
 }
 
+function run_filter($post_data, $items, $details, $atts)
+{
+    if (isset($post_data["filters"])) {
+        $filter_options = $post_data["filters"];
+        $matches = true;
+        foreach ($filter_options as $filter) {
+            if (!($filter->matches)($atts, $details)) {
+                $matches = false;
+            }
+        }
+        if ($matches) {
+            $items[] = $details;
+        }
+    } else {
+        $items[] = $details;
+    }
+    return $items;
+}
+
 function render_grid_items($atts, $post_data)
 {
     $output = '';
     $search = isset($_GET["search"]) ? $_GET["search"] : null;
     unset($_GET["search"]);
-    $loop = new WP_Query([
-        's' => null,
-        'post_type' => $atts["post_type"],
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-        'orderby' => 'menu_order',
-        'order' => 'ASC',
-    ]);
+
+    $post_type = null;
+    $source = null;
+
+    if (isset($post_data["data"])) {
+        $data = $post_data["data"];
+        if (is_callable($data)) {
+            $source = ($data)();
+        } else if (is_string($data)) {
+            $post_type = $post_data["data"];
+        }
+    } else {
+        $post_type = $atts["post_type"];
+    }
+
+    $items = [];
+
+    if (isset($source)) {
+        foreach ($source as $details) {
+            $items = run_filter($post_data, $items, $details, $atts);
+        }
+    } else {
+        $loop = new WP_Query([
+            's' => null,
+            'post_type' => $post_type,
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+            'orderby' => 'menu_order',
+            'order' => 'ASC',
+        ]);
+
+        while ($loop->have_posts()): $loop->the_post();
+            $id = get_the_ID();
+            if (isset($post_data["get_details"])) {
+                $details = ($post_data["get_details"])($id);
+            } else {
+                $output .= 'Please specify a get_details function';
+                break;
+            }
+
+            $items = run_filter($post_data, $items, $details, $atts);
+
+        endwhile;
+        wp_reset_postdata();
+    }
+
     if ($search) {
         $_GET["search"] = $search;
     }
-    $items = [];
-    while ($loop->have_posts()): $loop->the_post();
-        $id = get_the_ID();
-        if (isset($post_data["get_details"])) {
-            $details = ($post_data["get_details"])($id);
-        } else {
-            $output .= 'Please specify detail getter';
-        }
-        if (isset($post_data["filters"])) {
-            $filter_options = $post_data["filters"];
-            $matches = true;
-            foreach ($filter_options as $filter) {
-                if (!($filter->matches)($atts, $details)) {
-                    $matches = false;
-                }
-            }
-            if ($matches) {
-                $items[] = $details;
-            }
-        } else {
-            $items[] = $details;
-        }
-    endwhile;
-    wp_reset_postdata();
 
     $count = isset($atts["count"]) && !empty($atts["count"]) ? intval($atts["count"]) : -1;
     $total = count($items);
@@ -139,6 +173,9 @@ function render_grid_items($atts, $post_data)
         foreach ($items as $details) {
             if (isset($post_data["render"])) {
                 $output .= ($post_data["render"])($details);
+            } else {
+                $output .= "Please specify a render function";
+                break;
             }
         }
         $output .= '</div>';
