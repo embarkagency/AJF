@@ -1,5 +1,4 @@
 jQuery(document).ready(function($){
-	
 	class AJF_class {
 		constructor() {
 			const $this = this;
