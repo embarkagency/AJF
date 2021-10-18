@@ -43,6 +43,24 @@ function register_filters($post_type, $filters)
     $WP_AJF_DATA[$post_type]["temp_filters"] = $filters;
 }
 
+function get_filter_options($filters, $details)
+{
+
+    foreach ($filters as $filter_key => $filter_data) {
+        if (isset($details[$filter_key])) {
+            $filters[$filter_key] = (object) $filters[$filter_key];
+            if ($filters[$filter_key]->type === "select") {
+                if (!isset($filters[$filter_key]->options)) {
+                    $filter[$filter_key]->options = [];
+                }
+                $filters[$filter_key]->options[] = $details[$filter_key];
+            }
+        }
+    }
+
+    return $filters;
+}
+
 function real_register_filters($post_type, $filters)
 {
     global $WP_AJF_DATA;
@@ -51,29 +69,37 @@ function real_register_filters($post_type, $filters)
         $WP_AJF_DATA[$post_type] = [];
     }
 
-    $args = array(
-        'post_type' => $post_type,
-        'post_status' => 'publish',
-        'posts_per_page' => -1,
-    );
+    $source = null;
 
-    $loop = new WP_Query($args);
-    while ($loop->have_posts()): $loop->the_post();
-        $id = get_the_ID();
-        $plan_details = ($WP_AJF_DATA[$post_type]["get_details"])($id);
-        foreach ($filters as $filter_key => $filter_data) {
-            if (isset($plan_details[$filter_key])) {
-                $filters[$filter_key] = (object) $filters[$filter_key];
-                if ($filters[$filter_key]->type === "select") {
-                    if (!isset($filters[$filter_key]->options)) {
-                        $filter[$filter_key]->options = [];
-                    }
-                    $filters[$filter_key]->options[] = $plan_details[$filter_key];
-                }
-            }
+    if (isset($WP_AJF_DATA[$post_type]["data"])) {
+        $data = $WP_AJF_DATA[$post_type]["data"];
+        if (is_callable($data)) {
+            $source = ($data)();
+        } else if (is_string($data)) {
+            $post_type = $WP_AJF_DATA[$post_type]["data"];
         }
-    endwhile;
-    wp_reset_postdata();
+    }
+
+    if (isset($source)) {
+        foreach ($source as $details) {
+            $filters = get_filter_options($filters, (array) $details);
+        }
+    } else {
+        $args = array(
+            'post_type' => $post_type,
+            'post_status' => 'publish',
+            'posts_per_page' => -1,
+        );
+
+        $loop = new WP_Query($args);
+        while ($loop->have_posts()): $loop->the_post();
+            $id = get_the_ID();
+            $details = ($WP_AJF_DATA[$post_type]["get_details"])($id);
+            $details = (array) $details;
+            $filters = get_filter_options($filters, $details);
+        endwhile;
+        wp_reset_postdata();
+    }
 
     foreach ($filters as $filter_key => $filter_data) {
         if ($filter_data->type === "select") {
@@ -87,6 +113,7 @@ function real_register_filters($post_type, $filters)
 
 function run_filter($post_data, $items, $details, $atts)
 {
+    $details = (array) $details;
     if (isset($post_data["filters"])) {
         $filter_options = $post_data["filters"];
         $matches = true;
@@ -172,6 +199,7 @@ function render_grid_items($atts, $post_data)
         $output .= '<div class="' . $container_class . '">';
         foreach ($items as $details) {
             if (isset($post_data["render"])) {
+                $details = (array) $details;
                 $output .= ($post_data["render"])($details);
             } else {
                 $output .= "Please specify a render function";
@@ -208,6 +236,8 @@ add_action('init', function () {
                 $output = '';
 
                 $filter_options = $ajf_data_type["filters"];
+
+                $output .= var_export($filter_options, true);
 
                 $output .= '<div class="filter-options">';
                 foreach ($filter_options as $filter_key => $filter) {
