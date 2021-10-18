@@ -237,8 +237,6 @@ add_action('init', function () {
 
                 $filter_options = $ajf_data_type["filters"];
 
-                $output .= var_export($filter_options, true);
-
                 $output .= '<div class="filter-options">';
                 foreach ($filter_options as $filter_key => $filter) {
                     $output .= '<div class="filter-option">';
