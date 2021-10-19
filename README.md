@@ -14,6 +14,7 @@ Calling this function will register a shortcode which will be $post_type appende
 You can register any post type that is in the system.
 ```php
 register_grid("post", [
+    "pagination" => true,
     "get_details" => function($id) {
         return [
             "title" => get_the_title($id)
