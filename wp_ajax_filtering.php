@@ -61,6 +61,22 @@ function wp_ajf_get_filter_options($filters, $details)
     return $filters;
 }
 
+function get_source_data($post_type, $fn)
+{
+    global $WP_AJF_DATA;
+
+    $source = [];
+
+    if (isset($WP_AJF_DATA[$post_type]["cache"])) {
+        $source = $WP_AJF_DATA[$post_type]["cache"];
+    } else {
+        $source = ($fn)();
+        $WP_AJF_DATA[$post_type]["cache"] = $source;
+    }
+
+    return $source;
+}
+
 function wp_ajf_real_register_filters($post_type, $filters)
 {
     global $WP_AJF_DATA;
@@ -74,7 +90,7 @@ function wp_ajf_real_register_filters($post_type, $filters)
     if (isset($WP_AJF_DATA[$post_type]["data"])) {
         $data = $WP_AJF_DATA[$post_type]["data"];
         if (is_callable($data)) {
-            $source = ($data)();
+            $source = get_source_data($post_type, $data);
         } else if (is_string($data)) {
             $post_type = $WP_AJF_DATA[$post_type]["data"];
         }
@@ -166,7 +182,7 @@ function wp_ajf_render_grid_items($atts, $post_data)
     if (isset($post_data["data"])) {
         $data = $post_data["data"];
         if (is_callable($data)) {
-            $source = ($data)();
+            $source = get_source_data($atts["post_type"], $data);
         } else if (is_string($data)) {
             $post_type = $post_data["data"];
         }
@@ -261,7 +277,7 @@ function wp_ajf_render_grid_items($atts, $post_data)
             if ($page_number["page"] === $page) {
                 $page_active = 'active';
             }
-            $pagination .= '<a class="pagination-num ' . $page_active . '" data-page="' . $page_number["page"] . '" href="?pge=' . $page_number . '" data-post-type="' . $atts["post_type"] . '">';
+            $pagination .= '<a class="pagination-num ' . $page_active . '" data-page="' . $page_number["page"] . '" href="?pge=' . $page_number["page"] . '" data-post-type="' . $atts["post_type"] . '">';
             $pagination .= $page_number["label"];
             $pagination .= '</a>';
         }
