@@ -43,7 +43,7 @@ function register_filters($post_type, $filters)
     $WP_AJF_DATA[$post_type]["temp_filters"] = $filters;
 }
 
-function get_filter_options($filters, $details)
+function wp_ajf_get_filter_options($filters, $details)
 {
 
     foreach ($filters as $filter_key => $filter_data) {
@@ -61,7 +61,7 @@ function get_filter_options($filters, $details)
     return $filters;
 }
 
-function real_register_filters($post_type, $filters)
+function wp_ajf_real_register_filters($post_type, $filters)
 {
     global $WP_AJF_DATA;
 
@@ -82,7 +82,7 @@ function real_register_filters($post_type, $filters)
 
     if (isset($source)) {
         foreach ($source as $details) {
-            $filters = get_filter_options($filters, (array) $details);
+            $filters = wp_ajf_get_filter_options($filters, (array) $details);
         }
     } else {
         $args = array(
@@ -96,7 +96,7 @@ function real_register_filters($post_type, $filters)
             $id = get_the_ID();
             $details = ($WP_AJF_DATA[$post_type]["get_details"])($id);
             $details = (array) $details;
-            $filters = get_filter_options($filters, $details);
+            $filters = wp_ajf_get_filter_options($filters, $details);
         endwhile;
         wp_reset_postdata();
     }
@@ -111,16 +111,33 @@ function real_register_filters($post_type, $filters)
     return $filters;
 }
 
-function run_filter($post_data, $items, $details, $atts)
+function wp_ajf_contains($needle = null, $haystack = null)
+{
+    return isset($needle) && !empty($needle) ? strpos(strtolower($haystack), strtolower($needle)) > -1 : true;
+}
+
+function wp_ajf_like($needle = null, $haystack = null)
+{
+    return isset($needle) && !empty($needle) ? strtolower($needle) == strtolower($haystack) : true;
+}
+
+function wp_ajf_exact($needle = null, $haystack = null)
+{
+    return isset($needle) && !empty($needle) ? $needle == $haystack : true;
+}
+
+function wp_ajf_run_filter($post_data, $items, $details, $atts)
 {
     $details = (array) $details;
     if (isset($post_data["filters"])) {
         $filter_options = $post_data["filters"];
         $matches = true;
-        foreach ($filter_options as $filter) {
+        foreach ($filter_options as $filter_key => $filter) {
             if (!($filter->matches)($atts, $details)) {
                 $matches = false;
             }
+
+            unset($_GET[$filter_key]);
         }
         if ($matches) {
             $items[] = $details;
@@ -131,11 +148,9 @@ function run_filter($post_data, $items, $details, $atts)
     return $items;
 }
 
-function render_grid_items($atts, $post_data)
+function wp_ajf_render_grid_items($atts, $post_data)
 {
     $output = '';
-    $search = isset($_GET["search"]) ? $_GET["search"] : null;
-    unset($_GET["search"]);
 
     $post_type = null;
     $source = null;
@@ -155,7 +170,7 @@ function render_grid_items($atts, $post_data)
 
     if (isset($source)) {
         foreach ($source as $details) {
-            $items = run_filter($post_data, $items, $details, $atts);
+            $items = wp_ajf_run_filter($post_data, $items, $details, $atts);
         }
     } else {
         $loop = new WP_Query([
@@ -176,14 +191,10 @@ function render_grid_items($atts, $post_data)
                 break;
             }
 
-            $items = run_filter($post_data, $items, $details, $atts);
+            $items = wp_ajf_run_filter($post_data, $items, $details, $atts);
 
         endwhile;
         wp_reset_postdata();
-    }
-
-    if ($search) {
-        $_GET["search"] = $search;
     }
 
     $count = isset($atts["count"]) && !empty($atts["count"]) ? intval($atts["count"]) : -1;
@@ -219,13 +230,58 @@ function render_grid_items($atts, $post_data)
     return ["html" => $output];
 }
 
+function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
+{
+    $output = '';
+
+    $output .= '<div class="filter-option">';
+
+    if ($filter_key === "s" || $filter_key === "search") {
+        $output .= '<div class="filter-option-error">`' . $filter_key . '` property is not allowed in filters. To fix please capitalize or change.</div>';
+    } else {
+        if (isset($filter->name)) {
+            $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
+        }
+
+        $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '"';
+
+        $get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
+
+        if ($filter->type === "text") {
+            $output .= '<div class="filter-text-wrapper">';
+            $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
+            $output .= '</div>';
+        } else if ($filter->type === "select") {
+            $output .= '<div class="filter-select-wrapper">';
+            if (isset($filter->icon)) {
+                $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
+            }
+            $output .= '<select' . $default_props . '>';
+            $output .= '<option value="">Any</option>';
+            foreach ($filter->options as $option) {
+                $output .= '<option value="' . $option . '" ' . (isset($get_value) && $get_value === $option ? 'selected' : '') . '>' . $option . '</option>';
+            }
+            $output .= '</select>';
+
+            $output .= '<div class="filter-chevron">';
+            $output .= '<i class="fal fa-chevron-down"></i>';
+            $output .= '</div>';
+
+            $output .= '</div>';
+        }
+    }
+
+    $output .= '</div>';
+    return $output;
+}
+
 add_action('init', function () {
     global $WP_AJF_DATA;
 
     foreach ($WP_AJF_DATA as $ajf_post_type => $ajf_data_type) {
 
         if (isset($ajf_data_type["temp_filters"])) {
-            $real_filters = real_register_filters($ajf_post_type, $ajf_data_type["temp_filters"]);
+            $real_filters = wp_ajf_real_register_filters($ajf_post_type, $ajf_data_type["temp_filters"]);
             $ajf_data_type["filters"] = $real_filters;
         }
 
@@ -239,44 +295,19 @@ add_action('init', function () {
 
                 $output .= '<div class="filter-options">';
                 foreach ($filter_options as $filter_key => $filter) {
-                    $output .= '<div class="filter-option">';
-                    if (isset($filter->name)) {
-                        $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
-                    }
-
-                    $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '"';
-
-                    $get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
-
-                    if ($filter->type === "text") {
-                        $output .= '<div class="filter-text-wrapper">';
-                        $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
-                        $output .= '</div>';
-                    } else if ($filter->type === "select") {
-                        $output .= '<div class="filter-select-wrapper">';
-                        if (isset($filter->icon)) {
-                            $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
-                        }
-                        $output .= '<select' . $default_props . '>';
-                        $output .= '<option value="">Any</option>';
-                        foreach ($filter->options as $option) {
-                            $output .= '<option value="' . $option . '" ' . (isset($get_value) && $get_value === $option ? 'selected' : '') . '>' . $option . '</option>';
-                        }
-                        $output .= '</select>';
-
-                        $output .= '<div class="filter-chevron">';
-                        $output .= '<i class="fal fa-chevron-down"></i>';
-                        $output .= '</div>';
-
-                        $output .= '</div>';
-                    }
-
-                    $output .= '</div>';
+                    $output .= wp_ajf_render_filter($ajf_post_type, $filter, $filter_key);
                 }
                 $output .= '</div>';
 
                 return $output;
             });
+
+            foreach ($ajf_data_type["filters"] as $filter_key => $filter) {
+                add_shortcode($ajf_post_type . "-filters-" . $filter_key, function () use ($ajf_post_type, $filter, $filter_key) {
+                    // return var_export($ajf_post_type, true);
+                    return wp_ajf_render_filter($ajf_post_type, $filter, $filter_key);
+                });
+            }
         }
 
         add_shortcode($shortcode_tag, function ($atts) use ($ajf_post_type, $ajf_data_type, $shortcode_tag) {
@@ -299,7 +330,7 @@ add_action('init', function () {
                 $atts[$get_key] = $get_value;
             }
 
-            $render = render_grid_items($atts, $ajf_data_type);
+            $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
 
             $output = '';
             $output .= '<div class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '">';
@@ -316,7 +347,7 @@ add_action('init', function () {
                 'callback' => function ($data) use ($ajf_post_type, $ajf_data_type) {
                     $atts = $data->get_params();
                     $atts["post_type"] = $ajf_post_type;
-                    $render = render_grid_items($atts, $ajf_data_type);
+                    $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
 
                     $result = new WP_REST_Response(array(
                         "html" => $render["html"],
