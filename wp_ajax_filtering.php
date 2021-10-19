@@ -151,6 +151,7 @@ function wp_ajf_run_filter($post_data, $items, $details, $atts)
 function wp_ajf_render_grid_items($atts, $post_data)
 {
     $output = '';
+    $pagination = '';
 
     $post_type = null;
     $source = null;
@@ -197,11 +198,31 @@ function wp_ajf_render_grid_items($atts, $post_data)
         wp_reset_postdata();
     }
 
+    $page;
+    if (isset($atts["pge"])) {
+        $page = intval($atts["pge"]);
+    } else {
+        $page = 1;
+    }
+
     $count = isset($atts["count"]) && !empty($atts["count"]) ? intval($atts["count"]) : -1;
     $total = count($items);
 
+    $offset = ($page - 1) * $count;
+    $page_numbers = [];
+
+    if ($page > 1) {
+        $page_numbers[] = ["page" => $page - 1, "label" => "Prev"];
+    }
+    for ($i = 0; $i < ceil($total / $count); $i++) {
+        $page_numbers[] = ["page" => ($i + 1), "label" => ($i + 1)];
+    }
+    if ($page < ceil($total / $count)) {
+        $page_numbers[] = ["page" => $page + 1, "label" => "Next"];
+    }
+
     if ($count > 0) {
-        $items = array_slice($items, 0, $count);
+        $items = array_slice($items, $offset, $count);
     }
 
     $container_class = isset($post_data["class"]) ? $post_data["class"] : "archive-grid";
@@ -227,7 +248,26 @@ function wp_ajf_render_grid_items($atts, $post_data)
         $output .= '<div class="no-results">' . (isset($post_data["no_results"]) ? $post_data["no_results"] : "No results found") . '</h4>';
     }
 
-    return ["html" => $output];
+    if (count($page_numbers) > 0) {
+        $pagination .= '<div class="pagination-grid">';
+        foreach ($page_numbers as $page_number) {
+            $page_active = '';
+            if ($page_number["page"] === $page) {
+                $page_active = 'active';
+            }
+            $pagination .= '<a class="pagination-num ' . $page_active . '" data-page="' . $page_number["page"] . '" href="?pge=' . $page_number . '" data-post-type="' . $atts["post_type"] . '">';
+            $pagination .= $page_number["label"];
+            $pagination .= '</a>';
+        }
+        $pagination .= '</div>';
+    }
+
+    $response = ["html" => $output];
+    if ($count > 0 && isset($post_data["pagination"]) && isset($pagination) && !empty($pagination)) {
+        $response["pagination"] = $pagination;
+    }
+
+    return $response;
 }
 
 function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
@@ -322,6 +362,7 @@ add_action('init', function () {
             $defaults = array_merge([
                 "post_type" => $ajf_post_type,
                 "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
+                "pge" => 1,
             ], $defaults);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
@@ -337,6 +378,12 @@ add_action('init', function () {
             $output .= $render["html"];
             $output .= '</div>';
 
+            if (isset($render["pagination"])) {
+                $output .= '<div class="pagination-container" data-post-type="' . $defaults["post_type"] . '">';
+                $output .= $render["pagination"];
+                $output .= '</div>';
+            }
+
             return $output;
         });
 
@@ -348,10 +395,13 @@ add_action('init', function () {
                     $atts = $data->get_params();
                     $atts["post_type"] = $ajf_post_type;
                     $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
+                    $data = array("html" => $render["html"]);
 
-                    $result = new WP_REST_Response(array(
-                        "html" => $render["html"],
-                    ), 200);
+                    if (isset($render["pagination"])) {
+                        $data["pagination"] = $render["pagination"];
+                    }
+
+                    $result = new WP_REST_Response($data, 200);
 
                     $result->set_headers(array('Cache-Control' => 'max-age=3600'));
 
