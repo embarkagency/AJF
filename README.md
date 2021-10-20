@@ -25,7 +25,7 @@ register_grid("post", [
     }
 ]);
 ```
-
+Will generate the shortcode ```[post-grid]```
 <br/><br/>
 
 Also pass it a config option which will be used to specify what details(information) is needed, it will only pull the information that is specified in this function. It will pass an ID to the ```get_details``` property which should then return an array of properties which will then be passed to the ```render``` function. The render item is how each item in the grid will render, all items are looped over and called with this function.
@@ -35,7 +35,7 @@ Also pass it a config option which will be used to specify what details(informat
 ### Register Grid from API Example
 You can pull data dynamically from an API or custom data source by providing a function as the 'data' property.
 ```php
-register_grid("post", [
+register_grid("futurama", [
     "data" => function() {
         $apiUrl = 'http://futuramaapi.herokuapp.com/api/v2/characters';
         $response = wp_remote_get($apiUrl);
@@ -52,7 +52,7 @@ register_grid("post", [
     }
 ]);
 ```
-
+Will generate the shortcode ```[futurama-grid]```
 <br/>
 
 # register_filters
