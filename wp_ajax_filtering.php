@@ -91,6 +91,8 @@ function wp_ajf_real_register_filters($post_type, $filters)
 
     $has_select = false;
     foreach ($filters as $filter_key => $filter_data) {
+        $filter_data = (object) $filter_data;
+        $filters[$filter_key] = $filter_data;
         if ($filter_data->type === "select") {
             $has_select = true;
         }
@@ -173,13 +175,18 @@ function wp_ajf_run_filter($post_data, $items, $details, $atts)
         $filter_options = $post_data["filters"];
         $matches = true;
         foreach ($filter_options as $filter_key => $filter) {
+            if ($filter->type === "checkbox") {
+                if ($atts[$filter_key] === "true") {
+                    $atts[$filter_key] = true;
+                } else {
+                    unset($atts[$filter_key]);
+                }
+            }
             if (isset($filter->matches)) {
                 if (!($filter->matches)($atts, $details)) {
                     $matches = false;
                 }
             }
-
-            unset($_GET[$filter_key]);
         }
         if ($matches) {
             $items[] = $details;
@@ -286,7 +293,7 @@ function wp_ajf_render_grid_items($atts, $post_data)
             $output .= '</div>';
         }
     } else {
-        $output .= '<div class="no-results">' . (isset($post_data["no_results"]) ? $post_data["no_results"] : "No results found") . '</h4>';
+        $output .= '<div class="no-results">' . (isset($post_data["no_results"]) ? $post_data["no_results"] : "No results found") . '</div>';
     }
 
     if (count($page_numbers) > 0 && $count > 0 && isset($post_data["pagination"])) {
@@ -304,9 +311,16 @@ function wp_ajf_render_grid_items($atts, $post_data)
     }
 
     $response = ["html" => $output];
-    $response["items"] = $items;
+
+    if (isset($post_data["include_items"]) && $post_data["include_items"] === true) {
+        $response["items"] = $items;
+    }
+    $response["total"] = $total;
+
     if ($count > 0 && isset($post_data["pagination"]) && isset($pagination) && !empty($pagination)) {
         $response["pagination"] = $pagination;
+    } else {
+        $response["pagination"] = "";
     }
 
     return $response;
@@ -325,7 +339,7 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
             $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
         }
 
-        $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '"';
+        $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '" data-input-type="' . $filter->type . '"';
 
         $get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
 
@@ -333,13 +347,19 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
             $output .= '<div class="filter-text-wrapper">';
             $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
             $output .= '</div>';
+        } else if ($filter->type === "checkbox") {
+            $output .= '<div class="filter-text-wrapper">';
+            $output .= '<input type="checkbox"' . $default_props . ' ' . (isset($get_value) && $get_value === "true" ? 'checked' : '') . '/>';
+            $output .= '</div>';
         } else if ($filter->type === "select") {
             $output .= '<div class="filter-select-wrapper">';
             if (isset($filter->icon)) {
                 $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
             }
             $output .= '<select' . $default_props . '>';
-            $output .= '<option value="">Any</option>';
+            if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
+                $output .= '<option value="">Any</option>';
+            }
             foreach ($filter->options as $option) {
                 $output .= '<option value="' . $option . '" ' . (isset($get_value) && $get_value === $option ? 'selected' : '') . '>' . $option . '</option>';
             }
@@ -395,9 +415,11 @@ add_action('init', function () {
             $defaults = [];
             if (isset($ajf_data_type["filters"])) {
                 $defaults = $ajf_data_type["filters"];
-                $defaults = array_map(function () {
-                    return "";
-                }, $defaults);
+                $defaults = array_map(function ($filter_key) use ($ajf_data_type) {
+                    if ($filter_key === "count") {
+                        return isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : "";
+                    }
+                }, array_keys($defaults));
             }
 
             $defaults = array_merge([
@@ -409,7 +431,9 @@ add_action('init', function () {
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
 
             foreach ($_GET as $get_key => $get_value) {
-                $atts[$get_key] = $get_value;
+                if (isset($get_value) && $get_value !== "") {
+                    $atts[$get_key] = $get_value;
+                }
             }
 
             $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
@@ -439,7 +463,11 @@ add_action('init', function () {
 
                     $result = new WP_REST_Response($data, 200);
 
-                    $result->set_headers(array('Cache-Control' => 'max-age=3600'));
+                    if (!isset($ajf_data_type["cache"]) || isset($ajf_data_type["cache"]) && $ajf_data_type["cache"] !== false) {
+                        $cache_time = isset($ajf_data_type["cache"]) && is_numeric($ajf_data_type["cache"]) ? $ajf_data_type["cache"] : 3600;
+
+                        $result->set_headers(array('Cache-Control' => 'max-age=' . $cache_time));
+                    }
 
                     return $result;
                 },

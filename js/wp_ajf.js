@@ -21,30 +21,26 @@ jQuery(document).ready(function($){
 			$(".archive-container").each(function() {
 				const post_type = $(this).attr("data-post-type");
 				const default_post_count = parseInt($(this).attr("data-post-count"));
-				const default_items_data = $(this).attr("data-items");
-				const default_items = default_items_data ? JSON.parse(default_items) : [];
 				const default_page = $(this).attr("data-page") ? parseInt($(this).attr("data-page")) : 1;
 
 				let post_count = default_post_count;
 
 				$this.post_types[post_type] = {
-					default_items,
 					default_post_count,
 					post_count,
 					page: default_page
 				};
 			});
 
-			$(".filter-value").on("change", function() {
+			$(".filter-value").each(function() {
+				$this.setFilterValue(this);
+			});
+
+			$(document).on("change", ".filter-value", function() {
+				const data = $this.setFilterValue(this);
 				const post_type = $(this).attr("data-post-type");
-				$this.post_types[post_type].post_count = $this.post_types[post_type].default_post_count;
-				$this.resetPage(post_type);
-				const type = $(this).data("type");
-				$this.trigger("filter", {
-					data: {
-						type
-					},
-				});
+				data.post_type = post_type;
+				$this.trigger("filter", { data });
 				$this.load(post_type);
 			});
 
@@ -59,13 +55,12 @@ jQuery(document).ready(function($){
 				e.preventDefault();
 				const post_type = $(this).attr("data-post-type");
 				const page_num = parseInt($(this).attr("data-page"));
-				
+
 				$this.setPage(page_num, post_type);
-			})
+			});
 
 			$(document).ready(function() {
 				for(const post_type in $this.post_types) {
-					$this.load(post_type);
 					$this.trigger("ready", {
 						data: {
 							post_type
@@ -73,6 +68,48 @@ jQuery(document).ready(function($){
 					});
 				}
 			});
+		}
+
+		setFilterValue(el) {
+			const post_type = $(el).attr("data-post-type");
+			this.post_types[post_type].post_count = this.post_types[post_type].default_post_count;
+			this.resetPage(post_type);
+
+			const type = $(el).data("input-type");
+			const key = $(el).data("type");
+			const value = $(el).val();
+
+			const data = {
+				type,
+				key,
+				value,
+			};
+
+			if(data.type === "checkbox") {
+				data.value = $(el).is(":checked");
+			}
+
+			this.setValue(post_type, data);
+			return data;
+		}
+
+		setValue(post_type, data) {
+			post_type = post_type || Object.keys(this.post_types)[0];
+			if(!this.post_types[post_type].values) {
+				this.post_types[post_type].values = {};
+			}
+
+			this.post_types[post_type].values[data.key] = data;
+		}
+
+		getValues(post_type) {
+			post_type = post_type || Object.keys(this.post_types)[0];
+
+			const keyVals = (this.post_types[post_type].values ? Object.values(this.post_types[post_type].values) : []).map(filter => {
+				return [filter.key, filter.value];
+			});
+
+			return Object.fromEntries(keyVals);
 		}
 
 		resetPage(post_type) {
@@ -107,10 +144,15 @@ jQuery(document).ready(function($){
 			post_type = post_type || Object.keys(this.post_types)[0];
 			return new Promise((resolve, reject) => {
 				const $this = this;
-				const atts = Object.fromEntries([...$(".filter-value[data-post-type='" + post_type + "']")].map(filter => [$(filter).data("type"), $(filter).val()]));
+				const atts = $this.getValues(post_type);
 	
 				atts.pge = $this.post_types[post_type].page;
-	
+
+				if(atts["count"]) {
+					atts["count"] = atts["count"] || $this.post_types[post_type].default_post_count;
+					$this.post_types[post_type].post_count = atts["count"];
+				}
+
 				const archive_url = new URL(ajf_rest_url + "/" + post_type);
 	
 				for(const property in atts) {
@@ -120,24 +162,24 @@ jQuery(document).ready(function($){
 				history.replaceState({}, '', archive_url.search);
 	
 				archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
-				archive_url.searchParams.set('post_type', post_type);
 	
 				$this.trigger("submit", {
 					data: {
 						url: archive_url.toString(),
-						params: archive_url.searchParams
+						params: archive_url.searchParams,
+						filters: atts
 					},
 				});
 	
 				fetch(archive_url.toString())
 				.then(r => r.json())
 				.then(r => {
-					resolve(r);
 					$this.trigger("load", {
 						data: {
 							post_type,
 							html: r.html,
 							items: r.items || [],
+							total: r.total,
 							error: r.error,
 							response: r,
 							url: archive_url.toString(),
@@ -150,24 +192,24 @@ jQuery(document).ready(function($){
 								post_type,
 								html: r.html,
 								items: r.items || [],
+								total: r.total,
 								response: r,
 								url: archive_url.toString(),
 								params: archive_url.searchParams,
 							}
 						});
 					}
-					if(r.pagination) {
-						$this.trigger("pagination", {
-							data: {
-								post_type,
-								pagination: r.pagination,
-								items: r.items || [],
-								response: r,
-								url: archive_url.toString(),
-								params: archive_url.searchParams,	
-							}
-						})
-					}
+					$this.trigger("pagination", {
+						data: {
+							post_type,
+							pagination: r.pagination || "",
+							total: r.total,
+							items: r.items || [],
+							response: r,
+							url: archive_url.toString(),
+							params: archive_url.searchParams,	
+						}
+					});
 					if(r.error) {
 						$this.trigger("error", {
 							data: {
@@ -179,6 +221,7 @@ jQuery(document).ready(function($){
 							}
 						});
 					}
+					resolve(r);
 				})
 			});
 		}
