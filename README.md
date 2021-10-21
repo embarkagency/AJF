@@ -2,6 +2,7 @@
 
 # register_grid
 The register_grid function is used to specify a type of grid that displays.
+<br />
 Use like ```register_grid($post_type, $config)``` where $post_type is any post type that is registered with the Wordpress system, including custom post types.
 
 <br/>
