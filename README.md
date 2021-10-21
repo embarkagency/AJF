@@ -91,9 +91,9 @@ This example should be used with the first register_grid example, and it is a si
 register_filters("post", [
 	"query" => [
         "name" => "Search",
-		"type" => "text",
+        "type" => "text",
         "matches" => function ($atts, $details) {
-			return wp_ajf_contains($atts["query"], $details["title"]);
+            return wp_ajf_contains($atts["query"], $details["title"]);
         },
     ]
 ]);
@@ -101,4 +101,32 @@ register_filters("post", [
 //Use the shortcode [post-filters] or [post-filters-query]
 ```
 
-### Register 
+<br />
+
+### Register multiple filters for Post type example
+This example includes the checkbox filter for anything title with under 10 characters.
+```php
+register_filters("post", [
+	"under_10" => [
+		"name" => "Titles under 10",
+		"type" => "checkbox",
+		"matches" => function($atts, $details) {
+			return $atts["under_10"] ? (strlen($details["title"]) < 10) : true;
+		}
+	],
+]);
+
+//Use the shortcode [post-filters], [post-filters-under-10]
+```
+
+<br />
+
+
+| Option | Type | Description |
+| --- | --- | --- |
+| `name` | `string` | This will be used as the label, exclude to use the filter key |
+| `type` | `string` | Can be checkbox, text, select |
+| `matches` | `function($atts, $details)` | Used for matching against this filter, must return true or false |
+| `icon` | `string` | An icon to be placed next to the filter element |
+| `placeholder` | `string` | Only for text input type, placeholder for the input |
+| `options` | `array` | Only for select input type, this is all the options. Can be automatically populated with unique options from details array if slug matches |
