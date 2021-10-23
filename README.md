@@ -131,3 +131,31 @@ register_filters("post", [
 | `icon` | `string` | An icon to be placed next to the filter element |
 | `placeholder` | `string` | Only for text input type, placeholder for the input |
 | `options` | `array` | Only for select input type, this is all the options. Can be automatically populated with unique options from details array if slug matches |
+
+
+
+
+
+# Javascript API
+AJF also provides a javascript API which includes event listeners, methods and data access for implementing your own front-end functionality. Here are a few examples.
+
+
+
+```javascript
+//Fade out when filters submitted
+AJF.on("submit", ({ post_type }) => {
+    $(".archive-container[data-post-type='" + post_type + "']").fadeOut("fast");
+});
+
+//Fade in when results have loaded
+AJF.on("load", ({ post_type }) => {
+    $(".archive-container[data-post-type='" + post_type + "']").fadeIn("fast");
+});
+```
+
+```javascript
+//Log the value of the filter when changed
+AJF.on("filter", ({ key, value }) => {
+    console.log(key, value);
+})
+```
