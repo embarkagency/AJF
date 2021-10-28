@@ -4,12 +4,18 @@ jQuery(document).ready(function($){
 			this.post_types = {};
 			this.event_listeners = {};
 
-			this.on('render', function({ post_type, html }) {
+			this.on('render', ({ post_type, html }) => {
 				$(".archive-container[data-post-type='" + post_type + "']").html(html);
 			});
 
-			this.on('pagination', function({ post_type, pagination }) {
+			this.on('pagination', ({ post_type, pagination }) => {
 				$(".pagination-container[data-post-type='" + post_type + "']").html(pagination);
+			});
+
+			this.on('load-more', ({ post_type }) => {
+				this.post_types[post_type].post_count += this.post_types[post_type].default_post_count;
+				this.resetPage(post_type);
+				this.load(post_type);
 			});
 
 			this.init();
@@ -46,9 +52,11 @@ jQuery(document).ready(function($){
 
 			$(document).on("click", ".view-more-container .view-more-button", function() {
 				const post_type = $(this).attr("data-post-type");		
-				$this.post_types[post_type].post_count += $this.post_types[post_type].default_post_count;
-				$this.resetPage(post_type);
-				$this.load(post_type);
+				$this.trigger("load-more", {
+					data: {
+						post_type
+					}
+				})
 			});
 
 			$(document).on("click", ".pagination-grid .pagination-num", function(e) {
@@ -230,16 +238,22 @@ jQuery(document).ready(function($){
 			if(!this.event_listeners[type]) {
 				this.event_listeners[type] = [];
 			}	
-			this.event_listeners[type].push(fn);
+			this.event_listeners[type].unshift(fn);
 		}
 		
 		trigger(type, params={}) {
 			if(this.event_listeners[type]) {
-				this.event_listeners[type].forEach(event_listener => {
+				
+				for(let i = 0; i < this.event_listeners[type].length; i++) {
+					const event_listener = this.event_listeners[type][i];
+
 					if(typeof event_listener === "function") {
-						event_listener.bind(this)(...Object.values(params));
+						const shouldCont = event_listener.bind(this)(...Object.values(params));
+						if(!shouldCont) {
+							break;
+						}
 					}
-				})
+				}
 			}
 		}
 	}
