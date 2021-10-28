@@ -173,6 +173,7 @@ jQuery(document).ready(function($){
 	
 				$this.trigger("submit", {
 					data: {
+						post_type,
 						url: archive_url.toString(),
 						params: archive_url.searchParams,
 						filters: atts
