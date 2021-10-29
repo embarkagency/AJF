@@ -243,14 +243,13 @@ jQuery(document).ready(function($){
 		}
 		
 		trigger(type, params={}) {
-			if(this.event_listeners[type]) {
-				
+			if(this.event_listeners[type]) {	
 				for(let i = 0; i < this.event_listeners[type].length; i++) {
 					const event_listener = this.event_listeners[type][i];
 
 					if(typeof event_listener === "function") {
-						const shouldCont = event_listener.bind(this)(...Object.values(params));
-						if(!shouldCont) {
+						const shouldBreak = event_listener.bind(this)(...Object.values(params));
+						if(shouldBreak) {
 							break;
 						}
 					}
