@@ -159,3 +159,17 @@ AJF.on("filter", ({ key, value }) => {
     console.log(key, value);
 })
 ```
+
+```javascript
+//Callback when document is ready
+AJF.on("ready", (data) => {
+    console.log(data);
+})
+```
+
+
+Return true on any event listener to prevent further event listeners of the same type from firing.
+
+```javascript
+    
+```

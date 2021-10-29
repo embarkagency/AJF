@@ -256,16 +256,25 @@ function wp_ajf_render_grid_items($atts, $post_data)
     $count = isset($atts["count"]) && !empty($atts["count"]) ? intval($atts["count"]) : -1;
     $total = count($items);
 
+    $page_count = ceil($total / $count);
+
+    if ($page > $page_count) {
+        $page = $page_count;
+    }
+    if ($page < 1) {
+        $page = 1;
+    }
+
     $offset = ($page - 1) * $count;
     $page_numbers = [];
 
-    if ($page > 1) {
+    if ((!isset($post_data["has_nav"]) || (isset($post_data["has_nav"]) && $post_data["has_nav"] !== false)) && $page > 1) {
         $page_numbers[] = ["page" => $page - 1, "label" => "Prev"];
     }
-    for ($i = 0; $i < ceil($total / $count); $i++) {
+    for ($i = 0; $i < $page_count; $i++) {
         $page_numbers[] = ["page" => ($i + 1), "label" => ($i + 1)];
     }
-    if ($page < ceil($total / $count)) {
+    if ((!isset($post_data["has_nav"]) || (isset($post_data["has_nav"]) && $post_data["has_nav"] !== false)) && $page < $page_count) {
         $page_numbers[] = ["page" => $page + 1, "label" => "Next"];
     }
 

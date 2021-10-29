@@ -6,17 +6,17 @@ jQuery(document).ready(function($){
 
 			this.on('render', ({ post_type, html }) => {
 				$(".archive-container[data-post-type='" + post_type + "']").html(html);
-			});
+			}, true);
 
 			this.on('pagination', ({ post_type, pagination }) => {
 				$(".pagination-container[data-post-type='" + post_type + "']").html(pagination);
-			});
+			}, true);
 
 			this.on('load-more', ({ post_type }) => {
 				this.post_types[post_type].post_count += this.post_types[post_type].default_post_count;
 				this.resetPage(post_type);
 				this.load(post_type);
-			});
+			}, true);
 
 			this.init();
 		}
@@ -39,7 +39,7 @@ jQuery(document).ready(function($){
 			});
 
 			$(".filter-value").each(function() {
-				$this.setFilterValue(this);
+				$this.setFilterValue(this, false);
 			});
 
 			$(document).on("change", ".filter-value", function() {
@@ -58,6 +58,14 @@ jQuery(document).ready(function($){
 					}
 				})
 			});
+
+			// $(document).keydown(function(e){
+			// 	if(e.which == 39) { //RIGHT
+			// 		$this.next();
+			// 	} else if(e.which == 37) { //LEFT
+			// 		$this.prev();
+			// 	}
+			// });
 
 			$(document).on("click", ".pagination-grid .pagination-num", function(e) {
 				e.preventDefault();
@@ -78,10 +86,13 @@ jQuery(document).ready(function($){
 			});
 		}
 
-		setFilterValue(el) {
+		setFilterValue(el, shouldReset=true) {
 			const post_type = $(el).attr("data-post-type");
 			this.post_types[post_type].post_count = this.post_types[post_type].default_post_count;
-			this.resetPage(post_type);
+
+			if(shouldReset) {
+				this.resetPage(post_type);
+			}
 
 			const type = $(el).data("input-type");
 			const key = $(el).data("type");
@@ -235,11 +246,16 @@ jQuery(document).ready(function($){
 			});
 		}
 		
-		on(type, fn) {
+		on(type, fn, toEnd=false) {
 			if(!this.event_listeners[type]) {
 				this.event_listeners[type] = [];
-			}	
-			this.event_listeners[type].unshift(fn);
+			}
+
+			if(toEnd) {
+				this.event_listeners[type].push(fn);
+			} else {
+				this.event_listeners[type].unshift(fn);
+			}
 		}
 		
 		trigger(type, params={}) {
