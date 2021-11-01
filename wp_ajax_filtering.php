@@ -45,7 +45,6 @@ function register_filters($post_type, $filters)
 
 function wp_ajf_get_filter_options($filters, $details)
 {
-
     foreach ($filters as $filter_key => $filter_data) {
         if (isset($details[$filter_key])) {
             $filters[$filter_key] = (object) $filters[$filter_key];
@@ -53,7 +52,15 @@ function wp_ajf_get_filter_options($filters, $details)
                 if (!isset($filters[$filter_key]->options)) {
                     $filter[$filter_key]->options = [];
                 }
-                $filters[$filter_key]->options[] = $details[$filter_key];
+
+                if (isset($details[$filter_key])) {
+                    if (is_array($details[$filter_key])) {
+                        $filters[$filter_key]->options[] = array_merge($filters[$filter_key]->options, $details[$filter_key]);
+                    } else {
+                        $filters[$filter_key]->options[] = $details[$filter_key];
+                    }
+                }
+
             }
         }
     }
