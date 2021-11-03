@@ -55,7 +55,7 @@ function wp_ajf_get_filter_options($filters, $details)
 
                 if (isset($details[$filter_key])) {
                     if (is_array($details[$filter_key])) {
-                        $filters[$filter_key]->options[] = array_merge($filters[$filter_key]->options, $details[$filter_key]);
+                        $filters[$filter_key]->options = array_merge($filters[$filter_key]->options, $details[$filter_key]);
                     } else {
                         $filters[$filter_key]->options[] = $details[$filter_key];
                     }
@@ -182,8 +182,11 @@ function wp_ajf_run_filter($post_data, $items, $details, $atts)
         $filter_options = $post_data["filters"];
         $matches = true;
         foreach ($filter_options as $filter_key => $filter) {
+            if ($filter->type === "clear") {
+                continue;
+            }
             if ($filter->type === "checkbox") {
-                if ($atts[$filter_key] === "true") {
+                if (isset($atts[$filter_key]) && $atts[$filter_key] === "true") {
                     $atts[$filter_key] = true;
                 } else {
                     unset($atts[$filter_key]);
@@ -290,19 +293,20 @@ function wp_ajf_render_grid_items($atts, $post_data)
     }
 
     $container_class = isset($post_data["class"]) ? $post_data["class"] : "archive-grid";
+    $as = isset($post_data["as"]) ? $post_data["as"] : "div";
 
     if (count($items) > 0) {
-        $output .= '<div class="' . $container_class . '">';
+        $output .= '<' . $as . ' class="' . $container_class . '">';
         foreach ($items as $details) {
             if (isset($post_data["render"])) {
                 $details = (array) $details;
-                $output .= ($post_data["render"])($details);
+                $output .= ($post_data["render"])($details, $atts);
             } else {
                 $output .= "Please specify a render function";
                 break;
             }
         }
-        $output .= '</div>';
+        $output .= '</' . $as . '>';
         if (!isset($post_data["pagination"]) && isset($post_data["view_more"]) && $count < $total) {
             $output .= '<div class="view-more-container">';
             $output .= '<button class="view-more-button" data-post-type="' . $atts["post_type"] . '">' . $post_data["view_more"] . '</button>';
@@ -351,15 +355,18 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
     if ($filter_key === "s" || $filter_key === "search") {
         $output .= '<div class="filter-option-error">`' . $filter_key . '` property is not allowed in filters. To fix please capitalize or change.</div>';
     } else {
-        if (isset($filter->name)) {
+        if (isset($filter->name) && $filter->type !== "clear") {
             $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
         }
 
         $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '" data-input-type="' . $filter->type . '"';
 
         $get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
-
-        if ($filter->type === "text") {
+        if ($filter->type === "clear") {
+            $output .= '<div class="filter-text-wrapper clear-filter">';
+            $output .= '<a href="javascript: void(0);"' . $default_props . '>' . $filter->name . '</a>';
+            $output .= '</div>';
+        } else if ($filter->type === "text") {
             $output .= '<div class="filter-text-wrapper">';
             $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
             $output .= '</div>';
@@ -442,6 +449,7 @@ add_action('init', function () {
                 "post_type" => $ajf_post_type,
                 "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
                 "pge" => 1,
+                "pagination" => isset($ajf_data_type["pagination"]) ? $ajf_data_type["pagination"] : false,
             ], $defaults);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
@@ -455,11 +463,12 @@ add_action('init', function () {
             $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
 
             $output = '';
+
             $output .= '<div class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
             $output .= $render["html"];
             $output .= '</div>';
 
-            if (isset($render["pagination"])) {
+            if (filter_var($atts["pagination"], FILTER_VALIDATE_BOOLEAN) !== false && isset($render["pagination"])) {
                 $output .= '<div class="pagination-container" data-post-type="' . $defaults["post_type"] . '">';
                 $output .= $render["pagination"];
                 $output .= '</div>';

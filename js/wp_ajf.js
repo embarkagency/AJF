@@ -47,7 +47,15 @@ jQuery(document).ready(function($){
 				const post_type = $(this).attr("data-post-type");
 				data.post_type = post_type;
 				$this.trigger("filter", { data });
-				$this.load(post_type);
+
+				if(!$(this).attr("data-skip-load")) {
+					$this.load(post_type);
+				}
+			});
+
+			$(document).on("click", ".filter-value[data-type='clear']", function() {
+				const post_type = $(this).attr("data-post-type");
+				$this.clear(post_type);
 			});
 
 			$(document).on("click", ".view-more-container .view-more-button", function() {
@@ -134,6 +142,26 @@ jQuery(document).ready(function($){
 		resetPage(post_type) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 			this.post_types[post_type].page = 1;
+		}
+
+		clear(post_type) {
+			post_type = post_type || Object.keys(this.post_types)[0];
+
+			$(".filter-value[data-post-type='" + post_type + "']").each(function() {
+				$(this).attr("data-skip-load", "true");
+				const type = $(this).data("input-type");
+				if(type === "checkbox") {
+					$(this).prop("checked", false);
+				} else {
+					$(this).val("");
+				}
+
+				$(this).trigger("change");
+				$(this).removeAttr("data-skip-load");
+			});
+
+			this.trigger("clear", { data: { post_type } });
+			this.load(post_type);
 		}
 
 		async setPage(page=1, post_type) {
