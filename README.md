@@ -110,7 +110,7 @@ register_filters("post", [
 This example includes the checkbox filter for anything title with under 10 characters.
 ```php
 register_filters("post", [
-    "under_10" => [
+    "under-10" => [
         "name" => "Titles under 10",
         "type" => "checkbox",
         "matches" => function($atts, $details) {

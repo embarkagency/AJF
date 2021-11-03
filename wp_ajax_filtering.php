@@ -288,6 +288,17 @@ function wp_ajf_render_grid_items($atts, $post_data)
         $page_numbers[] = ["page" => $page + 1, "label" => "Next"];
     }
 
+    //sorting
+    if (isset($atts["order"])) {
+        $order = $atts["order"];
+
+        if ($order === "random") {
+            shuffle($items);
+        } else if (is_callable($order)) {
+            usort($items, $order);
+        }
+    }
+
     if ($count > 0) {
         $items = array_slice($items, $offset, $count);
     }
@@ -448,8 +459,10 @@ add_action('init', function () {
             $defaults = array_merge([
                 "post_type" => $ajf_post_type,
                 "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
+                "order" => isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null,
                 "pge" => 1,
                 "pagination" => isset($ajf_data_type["pagination"]) ? $ajf_data_type["pagination"] : false,
+
             ], $defaults);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
