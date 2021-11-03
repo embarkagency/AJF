@@ -74,7 +74,9 @@ register_grid("futurama", [
 | `pagination` | `boolean` | Whether or not to display pagination |
 | `view_more` | `string` | If specified will display a "View More" button with the specific text. Will show more items incrementally i.e lazy loading items. |
 | `no_results` | `string` | Text/HTML to display when no results are available |
+| `as` | `string` | The HTML element to use as the grid wrapper ``default: 'div'`` |
 | `include_items` | `boolean` | If this is set to true, array of items will accessible with javascript |
+| `has_nav` | `boolean` | Show navigation for pagination i.e prev next |
 
 
 
@@ -108,13 +110,13 @@ register_filters("post", [
 This example includes the checkbox filter for anything title with under 10 characters.
 ```php
 register_filters("post", [
-	"under_10" => [
-		"name" => "Titles under 10",
-		"type" => "checkbox",
-		"matches" => function($atts, $details) {
-			return $atts["under_10"] ? (strlen($details["title"]) < 10) : true;
-		}
-	],
+"under_10" => [
+    "name" => "Titles under 10",
+    "type" => "checkbox",
+    "matches" => function($atts, $details) {
+        return $atts["under_10"] ? (strlen($details["title"]) < 10) : true;
+    }
+],
 ]);
 
 //Use the shortcode [post-filters], [post-filters-under-10]
