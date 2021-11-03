@@ -25,7 +25,6 @@ register_grid("post", [
     "render" => function($details) {
         return $details["title"] . "<br />";
     }
-
 ]);
 
 //Use the shortcode [post-grid]
@@ -71,6 +70,7 @@ register_grid("futurama", [
 | `count` | `integer` | Default number of items to be shown, will be overidden by shortcode attribute and filtering |
 | `class` | `string` | Class to use as the grid wrapper |
 | `cache` | `boolean`<br />`integer` | True or false will be on or off, integer will be on and cache timeout in seconds. 3600 by default |
+| `order` | `string` <br /> `function($a, $b)` | The order of the items, can be set as  ```random``` or a custom sorting function, which uses usort |
 | `pagination` | `boolean` | Whether or not to display pagination |
 | `view_more` | `string` | If specified will display a "View More" button with the specific text. Will show more items incrementally i.e lazy loading items. |
 | `no_results` | `string` | Text/HTML to display when no results are available |
