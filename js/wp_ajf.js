@@ -144,6 +144,42 @@ jQuery(document).ready(function($){
 			this.post_types[post_type].page = 1;
 		}
 
+		set(post_type, key, value) {
+			if(arguments.length === 2) {
+				value = key;
+				key = post_type;
+				post_type = Object.keys(this.post_types)[0];
+			} else {
+				post_type = post_type || Object.keys(this.post_types)[0];
+			}
+
+			const filter = $(".filter-value[data-type='" + key + "'][data-post-type='" + post_type + "']");
+			const type = filter.data("input-type");
+			if(type === "checkbox") {
+				filter.prop("checked", value);
+				filter.trigger("change");
+			} else {
+				filter.trigger("change");
+				filter.val(value);
+			}
+		}
+
+		get(post_type, key) {
+			if(arguments.length === 1) {
+				key = post_type;
+				post_type = Object.keys(this.post_types)[0];
+			} else {
+				post_type = post_type || Object.keys(this.post_types)[0];
+			}
+
+			const vals = this.getValues(post_type);
+			return vals[key];
+		}
+
+		postType(post_type) {
+			return this.post_types[post_type] ? true : false;
+		}
+
 		clear(post_type) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 

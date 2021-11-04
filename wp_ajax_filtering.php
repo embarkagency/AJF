@@ -449,11 +449,16 @@ add_action('init', function () {
             $defaults = [];
             if (isset($ajf_data_type["filters"])) {
                 $defaults = $ajf_data_type["filters"];
-                $defaults = array_map(function ($filter_key) use ($ajf_data_type) {
-                    if ($filter_key === "count") {
-                        return isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : "";
+
+                foreach ($defaults as $filter_key => $filter) {
+                    if (isset($filter->default) && !empty($filter->default)) {
+                        $defaults[$filter_key] = $filter->default;
+                    } else if ($filter_key === "count") {
+                        $defaults[$filter_key] = isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : "";
+                    } else {
+                        $defaults[$filter_key] = null;
                     }
-                }, array_keys($defaults));
+                }
             }
 
             $defaults = array_merge([
@@ -462,7 +467,6 @@ add_action('init', function () {
                 "order" => isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null,
                 "pge" => 1,
                 "pagination" => isset($ajf_data_type["pagination"]) ? $ajf_data_type["pagination"] : false,
-
             ], $defaults);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
