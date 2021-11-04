@@ -139,22 +139,21 @@ jQuery(document).ready(function($){
 			return Object.fromEntries(keyVals);
 		}
 
-		setAll(post_type, data) {
+		async setAll(post_type, data, shouldLoad=true) {
 			if(arguments.length === 1) {
 				data = post_type;
 				post_type = Object.keys(this.post_types)[0];
 			}
-
 			for(const key in data) {
-				this.set(post_type, {
-					key,
-					value: data[key]
-				});
+				this.set(post_type, key, data[key], false);
+			}
+			if(shouldLoad) {
+				await this.load(post_type);
 			}
 		}
 
-		set(post_type, key, value) {
-			if(arguments.length === 2) {
+		async set(post_type, key, value, shouldLoad=true) {
+			if(arguments.length < 3) {
 				value = key;
 				key = post_type;
 				post_type = Object.keys(this.post_types)[0];
@@ -162,8 +161,8 @@ jQuery(document).ready(function($){
 				post_type = post_type || Object.keys(this.post_types)[0];
 			}
 
-			if(typeof key === "object") {
-				this.setAll(post_type, key);
+			if(typeof value === "object") {
+				this.setAll(post_type, value);
 				return;
 			}
 
@@ -174,10 +173,14 @@ jQuery(document).ready(function($){
 				filter.prop("checked", value);
 				filter.trigger("change");
 			} else {
-				filter.trigger("change");
 				filter.val(value);
+				filter.trigger("change");
 			}
 			filter.removeAttr("data-skip-load");
+
+			if(shouldLoad) {
+				await this.load(post_type);
+			}
 		}
 
 		get(post_type, key) {
@@ -196,7 +199,7 @@ jQuery(document).ready(function($){
 			return this.post_types[post_type] ? true : false;
 		}
 
-		async clear(post_type) {
+		async clear(post_type, shouldLoad=true) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 
 			$(".filter-value[data-post-type='" + post_type + "']").each(function() {
@@ -213,7 +216,9 @@ jQuery(document).ready(function($){
 			});
 
 			this.trigger("clear", { data: { post_type } });
-			await this.load(post_type);
+			if(shouldLoad) {
+				await this.load(post_type);
+			}
 		}
 
 		resetPage(post_type) {

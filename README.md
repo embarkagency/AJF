@@ -179,10 +179,10 @@ AJF.on("ready", (data) => {
 Return true on any event listener to prevent further event listeners of the same type from firing.
 
 ```javascript
-    AJF.on("render", (data) => {
-        console.log(data);
-        return true; //Prevent default rendering
-    })
+AJF.on("render", (data) => {
+    console.log(data);
+    return true; //Prevent default rendering
+})
 ```
 
 
