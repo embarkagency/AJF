@@ -129,7 +129,7 @@ jQuery(document).ready(function($){
 			this.post_types[post_type].values[data.key] = data;
 		}
 
-		getValues(post_type) {
+		getAll(post_type) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 
 			const keyVals = (this.post_types[post_type].values ? Object.values(this.post_types[post_type].values) : []).map(filter => {
@@ -139,9 +139,18 @@ jQuery(document).ready(function($){
 			return Object.fromEntries(keyVals);
 		}
 
-		resetPage(post_type) {
-			post_type = post_type || Object.keys(this.post_types)[0];
-			this.post_types[post_type].page = 1;
+		setAll(post_type, data) {
+			if(arguments.length === 1) {
+				data = post_type;
+				post_type = Object.keys(this.post_types)[0];
+			}
+
+			for(const key in data) {
+				this.set(post_type, {
+					key,
+					value: data[key]
+				});
+			}
 		}
 
 		set(post_type, key, value) {
@@ -153,7 +162,13 @@ jQuery(document).ready(function($){
 				post_type = post_type || Object.keys(this.post_types)[0];
 			}
 
+			if(typeof key === "object") {
+				this.setAll(post_type, key);
+				return;
+			}
+
 			const filter = $(".filter-value[data-type='" + key + "'][data-post-type='" + post_type + "']");
+			filter.attr("data-skip-load", "true");
 			const type = filter.data("input-type");
 			if(type === "checkbox") {
 				filter.prop("checked", value);
@@ -162,6 +177,7 @@ jQuery(document).ready(function($){
 				filter.trigger("change");
 				filter.val(value);
 			}
+			filter.removeAttr("data-skip-load");
 		}
 
 		get(post_type, key) {
@@ -172,7 +188,7 @@ jQuery(document).ready(function($){
 				post_type = post_type || Object.keys(this.post_types)[0];
 			}
 
-			const vals = this.getValues(post_type);
+			const vals = this.getAll(post_type);
 			return vals[key];
 		}
 
@@ -180,7 +196,7 @@ jQuery(document).ready(function($){
 			return this.post_types[post_type] ? true : false;
 		}
 
-		clear(post_type) {
+		async clear(post_type) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 
 			$(".filter-value[data-post-type='" + post_type + "']").each(function() {
@@ -197,7 +213,12 @@ jQuery(document).ready(function($){
 			});
 
 			this.trigger("clear", { data: { post_type } });
-			this.load(post_type);
+			await this.load(post_type);
+		}
+
+		resetPage(post_type) {
+			post_type = post_type || Object.keys(this.post_types)[0];
+			this.post_types[post_type].page = 1;
 		}
 
 		async setPage(page=1, post_type) {
@@ -227,7 +248,7 @@ jQuery(document).ready(function($){
 			post_type = post_type || Object.keys(this.post_types)[0];
 			return new Promise((resolve, reject) => {
 				const $this = this;
-				const atts = $this.getValues(post_type);
+				const atts = $this.getAll(post_type);
 	
 				atts.pge = $this.post_types[post_type].page;
 

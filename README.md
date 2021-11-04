@@ -142,7 +142,6 @@ register_filters("post", [
 AJF also provides a javascript API which includes event listeners, methods and data access for implementing your own front-end functionality. Here are a few examples.
 
 
-
 ```javascript
 //Fade out when filters submitted
 AJF.on("submit", ({ post_type }) => {
@@ -163,6 +162,13 @@ AJF.on("filter", ({ key, value }) => {
 ```
 
 ```javascript
+//When filters are cleared
+AJF.on("clear", ({ key, value }) => {
+    console.log(key, value);
+})
+```
+
+```javascript
 //Callback when document is ready
 AJF.on("ready", (data) => {
     console.log(data);
@@ -173,5 +179,47 @@ AJF.on("ready", (data) => {
 Return true on any event listener to prevent further event listeners of the same type from firing.
 
 ```javascript
-    
+    AJF.on("render", (data) => {
+        console.log(data);
+        return true; //Prevent default rendering
+    })
+```
+
+
+Here are some more examples of how to use the API.
+
+```javascript
+//Get all the current current filter values
+const values = AJF.getAll();
+console.log(values);
+
+//Get all the current current filter values
+const values = AJF.getAll("post");
+console.log(values);
+
+//Get a single filter value
+const query = AJF.get("query");
+console.log(query);
+
+//Get a single filter value for specific post type on page
+const query = AJF.get("post", "query");
+console.log(query);
+
+//Set a single filter value
+AJF.set("query", "search term");
+
+//Set a single filter value for specific post type on page
+AJF.set("post", "query", "search");
+
+//Set multiple filter values at once
+AJF.set({
+    "query": "search term",
+    "under-10": true
+});
+
+//Set multiple filter values at once for specific post type on page
+AJF.set("post", {
+    "query": "search term",
+    "under-10": true
+});
 ```
