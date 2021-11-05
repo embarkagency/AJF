@@ -86,7 +86,7 @@ The register filters method is used for specifying different parameters that ca
 It takes two parameters, the first must be the same slug specified in the correlating register_grid function. Filters will only work if a grid already exists. The second is an array of different filters to be used with this grid.
 When registering filters you need to specify a ```type``` and a ```match``` function at the very least.
 
-Shortcodes will be generated for all the filters as well as each individual filter if you wish to split them up onto different parts of the page.
+Shortcodes will be generated for all the filters as well as each individual filter if you wish to split them up onto different parts of the page. URL rewriting is automatically handled, if you have multiple grids of different type one page the URL parameters will be prefixed with {post_type}__ e.g. ```?post__query=test+search```
 
 ### Register Search from Post type Example
 This example should be used with the first register_grid example, and it is a simple query search matching the post title.
@@ -120,6 +120,24 @@ register_filters("post", [
 ]);
 
 //Use the shortcode [post-filters], [post-filters-under-10]
+```
+
+<br />
+
+There are a couple of built-in helper filters too.
+
+```php
+register_filters("post", [
+    // Change the amount of items displayed
+    "count" => [
+        "type" => "select",
+        "options" => [10, 20, 50, 100, 200]
+    ],
+    // Clear all filters
+    "clear" => [
+        "type" => "clear"
+    ]
+]);
 ```
 
 <br />
