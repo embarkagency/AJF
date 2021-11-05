@@ -10,6 +10,10 @@ Use like ```register_grid($post_type, $config)``` where $post_type is any post t
 Calling this function will register a shortcode which will be $post_type appended with -grid. Put this anywhere on your page to display this grid. For instance
 ```post``` will register the shortcode ```post-grid```.
 
+Shortcodes also allow for the use of a few attributes by default aswell as registered filters.
+Eg.
+```[post-grid pagination="false" count="4" order="random"]```
+
 <br/>
 
 ### Register Grid from Post Type Example
