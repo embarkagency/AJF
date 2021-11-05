@@ -249,6 +249,19 @@ jQuery(document).ready(function($){
 			await this.load();
 		}
 
+		replaceState(post_type, archive_url) {
+			archive_url = new URL(archive_url);
+			if(Object.keys(this.post_types).length > 1) {
+				const params = Object.fromEntries(archive_url.searchParams);
+				for (const param in params) {
+					const val = params[param];
+					archive_url.searchParams.delete(param);
+					archive_url.searchParams.set(post_type + "__" + param, val);
+				}
+			}
+			history.replaceState({}, '', archive_url.search);
+		}
+
 		async load(post_type) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 			return new Promise((resolve, reject) => {
@@ -263,13 +276,10 @@ jQuery(document).ready(function($){
 				}
 
 				const archive_url = new URL(ajf_rest_url + "/" + post_type);
-	
 				for(const property in atts) {
 					archive_url.searchParams.set(property, atts[property]);
 				}
-	
-				history.replaceState({}, '', archive_url.search);
-	
+				this.replaceState(post_type, archive_url);
 				archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
 	
 				$this.trigger("submit", {

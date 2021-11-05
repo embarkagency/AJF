@@ -74,16 +74,6 @@ function get_source_data($atts, $fn)
 
     $source = ($fn)($atts);
     return $source;
-
-    // $source = [];
-
-    // if (isset($WP_AJF_DATA[$atts["post_type"]]["cache"])) {
-    //     $source = $WP_AJF_DATA[$atts["post_type"]]["cache"];
-    // } else {
-    //     $WP_AJF_DATA[$atts["post_type"]]["cache"] = $source;
-    // }
-
-    // return $source;
 }
 
 function wp_ajf_real_register_filters($post_type, $filters)
