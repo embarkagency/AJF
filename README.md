@@ -191,6 +191,13 @@ AJF.on("clear", ({ key, value }) => {
 ```
 
 ```javascript
+//When pagination button has been clicked
+AJF.on("page-change", ({ post_type, page_num }) => {
+    console.log(post_type, page_num);
+})
+```
+
+```javascript
 //Callback when document is ready
 AJF.on("ready", (data) => {
     console.log(data);

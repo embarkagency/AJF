@@ -80,7 +80,8 @@ jQuery(document).ready(function($){
 				const post_type = $(this).attr("data-post-type");
 				const page_num = parseInt($(this).attr("data-page"));
 				$this.trigger("page-change", { data: {
-					post_type, page_num
+					post_type,
+					page_num
 				}});
 				$this.setPage(page_num, post_type);
 			});
