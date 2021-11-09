@@ -285,11 +285,13 @@ jQuery(document).ready(function($){
 				this.replaceState(post_type, archive_url);
 				archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
 	
+				const params = archive_url.searchParams;
+
 				$this.trigger("submit", {
 					data: {
 						post_type,
 						url: archive_url.toString(),
-						params: archive_url.searchParams,
+						params,
 						filters: atts
 					},
 				});
@@ -306,7 +308,7 @@ jQuery(document).ready(function($){
 							error: r.error,
 							response: r,
 							url: archive_url.toString(),
-							params: archive_url.searchParams,
+							params,
 						}
 					});
 					if(r.html) {
@@ -318,7 +320,7 @@ jQuery(document).ready(function($){
 								total: r.total,
 								response: r,
 								url: archive_url.toString(),
-								params: archive_url.searchParams,
+								params,
 							}
 						});
 					}
@@ -330,7 +332,7 @@ jQuery(document).ready(function($){
 							items: r.items || [],
 							response: r,
 							url: archive_url.toString(),
-							params: archive_url.searchParams,	
+							params,
 						}
 					});
 					if(r.error) {
@@ -340,7 +342,7 @@ jQuery(document).ready(function($){
 								error: r.error,
 								response: r,
 								url: archive_url.toString(),
-								params: archive_url.searchParams,
+								params,
 							}
 						});
 					}
