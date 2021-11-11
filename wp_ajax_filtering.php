@@ -491,6 +491,8 @@ add_action('init', function () {
                 'callback' => function ($data) use ($ajf_post_type, $ajf_data_type) {
                     $atts = $data->get_params();
                     $atts["post_type"] = $ajf_post_type;
+                    $atts["order"] = isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null;
+
                     $data = wp_ajf_render_grid_items($atts, $ajf_data_type);
 
                     $result = new WP_REST_Response($data, 200);
