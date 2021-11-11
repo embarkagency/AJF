@@ -265,7 +265,7 @@ jQuery(document).ready(function($){
 			history.replaceState({}, '', archive_url.search);
 		}
 
-		async load(post_type) {
+		async load(post_type, render=true) {
 			post_type = post_type || Object.keys(this.post_types)[0];
 			return new Promise((resolve, reject) => {
 				const $this = this;
@@ -311,40 +311,42 @@ jQuery(document).ready(function($){
 							params,
 						}
 					});
-					if(r.html) {
-						$this.trigger("render", {
-							data: {
-								post_type,
-								html: r.html,
-								items: r.items || [],
-								total: r.total,
-								response: r,
-								url: archive_url.toString(),
-								params,
-							}
-						});
-					}
-					$this.trigger("pagination", {
-						data: {
-							post_type,
-							pagination: r.pagination || "",
-							total: r.total,
-							items: r.items || [],
-							response: r,
-							url: archive_url.toString(),
-							params,
+					if(render) {
+						if(r.html) {
+							$this.trigger("render", {
+								data: {
+									post_type,
+									html: r.html,
+									items: r.items || [],
+									total: r.total,
+									response: r,
+									url: archive_url.toString(),
+									params,
+								}
+							});
 						}
-					});
-					if(r.error) {
-						$this.trigger("error", {
+						$this.trigger("pagination", {
 							data: {
 								post_type,
-								error: r.error,
+								pagination: r.pagination || "",
+								total: r.total,
+								items: r.items || [],
 								response: r,
 								url: archive_url.toString(),
 								params,
 							}
 						});
+						if(r.error) {
+							$this.trigger("error", {
+								data: {
+									post_type,
+									error: r.error,
+									response: r,
+									url: archive_url.toString(),
+									params,
+								}
+							});
+						}
 					}
 					resolve(r);
 				})
