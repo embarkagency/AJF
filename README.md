@@ -167,41 +167,44 @@ register_filters("post", [
 AJF also provides a javascript API which includes event listeners, methods and data access for implementing your own front-end functionality. Here are a few examples.
 
 
+
+#### Fade out when filters submitted
 ```javascript
-//Fade out when filters submitted
 AJF.on("submit", ({ post_type }) => {
     $(".archive-container[data-post-type='" + post_type + "']").fadeOut("fast");
 });
+```
 
-//Fade in when results have loaded
+#### Fade in when results have loaded
+```javascript
 AJF.on("load", ({ post_type }) => {
     $(".archive-container[data-post-type='" + post_type + "']").fadeIn("fast");
 });
 ```
 
+#### Log the value of the filter when changed
 ```javascript
-//Log the value of the filter when changed
 AJF.on("filter", ({ key, value }) => {
     console.log(key, value);
 })
 ```
 
+#### When filters are cleared
 ```javascript
-//When filters are cleared
 AJF.on("clear", ({ key, value }) => {
     console.log(key, value);
 })
 ```
 
+#### When pagination button has been clicked
 ```javascript
-//When pagination button has been clicked
 AJF.on("page-change", ({ post_type, page_num }) => {
     console.log(post_type, page_num);
 })
 ```
 
+#### Callback when document is ready
 ```javascript
-//Callback when document is ready
 AJF.on("ready", (data) => {
     console.log(data);
 })
@@ -210,47 +213,91 @@ AJF.on("ready", (data) => {
 
 Return true on any event listener to prevent further event listeners of the same type from firing.
 
+#### Prevent default rendering
 ```javascript
 AJF.on("render", (data) => {
     console.log(data);
-    return true; //Prevent default rendering
+    return true; 
 })
 ```
 
 
-Here are some more examples of how to use the API.
+Methods are provided to get the current state of the filters.
 
+#### Get all the current current filter values
 ```javascript
-//Get all the current current filter values
 const values = AJF.getAll();
 console.log(values);
+```
 
-//Get all the current current filter values
+#### Get all the current current filter values
+```javascript
 const values = AJF.getAll("post");
 console.log(values);
+```
 
-//Get a single filter value
+#### Get a single filter value
+```javascript
 const query = AJF.get("query");
 console.log(query);
+```
 
-//Get a single filter value for specific post type on page
+#### Get a single filter value for specific post type on page
+```javascript
 const query = AJF.get("post", "query");
 console.log(query);
+```
 
-//Set a single filter value
+You can also set the value of the current filters, by default this will submit filters, but this can be disabled as explained further down.
+
+
+#### Set a single filter value
+```javascript
 AJF.set("query", "search term");
+```
 
-//Set a single filter value for specific post type on page
+#### Set a single filter value for specific post type on page
+```javascript
 AJF.set("post", "query", "search");
+```
 
-//Set multiple filter values at once
+#### Set multiple filter values at once
+```javascript
 AJF.set({
     "query": "search term",
     "under-10": true
 });
+```
 
-//Set multiple filter values at once for specific post type on page
+#### Set multiple filter values at once for specific post type on page
+```javascript
 AJF.set("post", {
+    "query": "search term",
+    "under-10": true
+});
+```
+
+#### Set multiple filter values at once for specific post type on page
+```javascript
+AJF.setAll("post", {
+    "query": "search term",
+    "under-10": true
+});
+```
+
+These can also be used ascynchronously, and will be resolved when the data is fetched
+
+#### Set multiple filter values at once for specific post type on page
+```javascript
+await AJF.set("post", {
+    "query": "search term",
+    "under-10": true
+});
+```
+
+#### Set multiple filter values at once for specific post type on page
+```javascript
+await AJF.setAll("post", {
     "query": "search term",
     "under-10": true
 });
