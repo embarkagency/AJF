@@ -304,9 +304,10 @@ function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
 
     if (count($items) > 0) {
         $output .= '<' . $as . ' class="' . $container_class . '">';
-        foreach ($items as $details) {
+        foreach ($items as $itemIndex => $details) {
             if (isset($post_data["render"])) {
                 $details = (array) $details;
+                $details["index"] = $itemIndex;
                 $output .= ($post_data["render"])($details, $atts);
             } else {
                 $output .= "Please specify a render function";
