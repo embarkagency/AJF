@@ -197,7 +197,7 @@ function wp_ajf_run_filter($post_data, $items, $details, $atts)
     return $items;
 }
 
-function wp_ajf_render_grid_items($atts, $post_data)
+function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
 {
     $output = '';
     $pagination = '';
@@ -341,7 +341,7 @@ function wp_ajf_render_grid_items($atts, $post_data)
 
     $response = ["html" => $output];
 
-    if (isset($post_data["include_items"]) && $post_data["include_items"] === true) {
+    if ((isset($post_data["include_items"]) && $post_data["include_items"] === true) || $include_items === true) {
         $response["items"] = $items;
     }
     $response["total"] = $total;
@@ -409,6 +409,50 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
     return $output;
 }
 
+function wp_ajf_get_defaults($ajf_data_type, $ajf_post_type)
+{
+    $defaults = [];
+    if (isset($ajf_data_type["filters"])) {
+        $defaults = $ajf_data_type["filters"];
+        foreach ($defaults as $filter_key => $filter) {
+            if (isset($filter->default) && !empty($filter->default)) {
+                $defaults[$filter_key] = $filter->default;
+            } else if ($filter_key === "count") {
+                $defaults[$filter_key] = isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : "";
+            } else {
+                $defaults[$filter_key] = null;
+            }
+        }
+    }
+
+    $defaults = array_merge([
+        "post_type" => $ajf_post_type,
+        "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
+        "order" => isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null,
+        "pge" => 1,
+        "pagination" => isset($ajf_data_type["pagination"]) ? $ajf_data_type["pagination"] : false,
+    ], $defaults);
+
+    return $defaults;
+}
+
+function get_grid_data($ajf_post_type, $atts = [])
+{
+    global $WP_AJF_DATA;
+
+    $ajf_data_type = isset($WP_AJF_DATA[$ajf_post_type]) ? $WP_AJF_DATA[$ajf_post_type] : null;
+
+    if ($ajf_data_type) {
+        $defaults = wp_ajf_get_defaults($ajf_data_type, $ajf_post_type);
+        $atts = array_merge($defaults, $atts);
+        $render = wp_ajf_render_grid_items($atts, $ajf_data_type, true);
+
+        return $render["items"];
+    }
+
+    return [];
+}
+
 add_action('init', function () {
     global $WP_AJF_DATA;
 
@@ -444,28 +488,8 @@ add_action('init', function () {
         }
 
         add_shortcode($shortcode_tag, function ($atts) use ($ajf_post_type, $ajf_data_type, $shortcode_tag) {
-            $defaults = [];
-            if (isset($ajf_data_type["filters"])) {
-                $defaults = $ajf_data_type["filters"];
 
-                foreach ($defaults as $filter_key => $filter) {
-                    if (isset($filter->default) && !empty($filter->default)) {
-                        $defaults[$filter_key] = $filter->default;
-                    } else if ($filter_key === "count") {
-                        $defaults[$filter_key] = isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : "";
-                    } else {
-                        $defaults[$filter_key] = null;
-                    }
-                }
-            }
-
-            $defaults = array_merge([
-                "post_type" => $ajf_post_type,
-                "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
-                "order" => isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null,
-                "pge" => 1,
-                "pagination" => isset($ajf_data_type["pagination"]) ? $ajf_data_type["pagination"] : false,
-            ], $defaults);
+            $defaults = wp_ajf_get_defaults($ajf_data_type, $ajf_post_type);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
 
