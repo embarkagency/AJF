@@ -295,6 +295,12 @@ function wp_ajf_render_grid_items($atts, $post_data)
 
     $container_class = isset($post_data["class"]) ? $post_data["class"] : "archive-grid";
     $as = isset($post_data["as"]) ? $post_data["as"] : "div";
+    $as_end = strtok($as, " ");
+
+    $prepend = isset($post_data["prepend"]) ? $post_data["prepend"] : "";
+    $append = isset($post_data["append"]) ? $post_data["append"] : "";
+
+    $output .= $prepend;
 
     if (count($items) > 0) {
         $output .= '<' . $as . ' class="' . $container_class . '">';
@@ -307,7 +313,7 @@ function wp_ajf_render_grid_items($atts, $post_data)
                 break;
             }
         }
-        $output .= '</' . $as . '>';
+        $output .= '</' . $as_end . '>';
         if (!isset($post_data["pagination"]) && isset($post_data["view_more"]) && $count < $total) {
             $output .= '<div class="view-more-container">';
             $output .= '<button class="view-more-button" data-post-type="' . $atts["post_type"] . '">' . $post_data["view_more"] . '</button>';
@@ -316,6 +322,8 @@ function wp_ajf_render_grid_items($atts, $post_data)
     } else {
         $output .= '<div class="no-results">' . (isset($post_data["no_results"]) ? $post_data["no_results"] : "No results found") . '</div>';
     }
+
+    $output .= $append;
 
     if (count($page_numbers) > 0 && $count > 0 && isset($post_data["pagination"])) {
         $pagination .= '<div class="pagination-grid">';
@@ -471,9 +479,12 @@ add_action('init', function () {
 
             $output = '';
 
-            $output .= '<div class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
+            $wrapper = isset($ajf_data_type["wrapper"]) ? $ajf_data_type["wrapper"] : "div";
+            $wrapper_end = strtok($wrapper, " ");
+
+            $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
             $output .= $render["html"];
-            $output .= '</div>';
+            $output .= '</' . $wrapper_end . '>';
 
             if (filter_var($atts["pagination"], FILTER_VALIDATE_BOOLEAN) !== false && isset($render["pagination"])) {
                 $output .= '<div class="pagination-container" data-post-type="' . $defaults["post_type"] . '">';

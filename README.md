@@ -79,8 +79,11 @@ register_grid("futurama", [
 | `view_more` | `string` | If specified will display a "View More" button with the specific text. Will show more items incrementally i.e lazy loading items. |
 | `no_results` | `string` | Text/HTML to display when no results are available |
 | `as` | `string` | The HTML element to use as the grid wrapper ``default: 'div'`` |
-| `include_items` | `boolean` | If this is set to true, array of items will accessible with javascript |
+| `wrapper` | `string` | The HTML element to use as the container wrapper ``default: 'div'`` |
 | `has_nav` | `boolean` | Show navigation for pagination i.e prev next |
+| `prepend` | `string` | HTML/Text to be prepended before the grid |
+| `append` | `string` | HTML/Text to be appended after the grid |
+| `include_items` | `boolean` | If this is set to true, array of items will accessible with javascript |
 
 
 
