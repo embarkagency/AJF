@@ -494,7 +494,15 @@ add_action('init', function () {
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
 
-            foreach ($_GET as $get_key => $get_value) {
+            $multi_atts = [];
+            // foreach ($_GET as $get_key => $get_value) {
+            //     if (strpos($get_key, '__' . $ajf_post_type) === 0) {
+            //         $get_key = str_replace('__' . $ajf_post_type, '', $get_key);
+            //         $multi_atts[$get_key] = $get_value;
+            //     }
+            // }
+
+            foreach ((count($multi_atts) < 1 ? $multi_atts : $_GET) as $get_key => $get_value) {
                 if (isset($get_value) && $get_value !== "") {
                     $atts[$get_key] = $get_value;
                 }
