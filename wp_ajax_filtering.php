@@ -298,12 +298,22 @@ function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
     $as_end = strtok($as, " ");
 
     $prepend = isset($post_data["prepend"]) ? $post_data["prepend"] : "";
+    $prepend = is_callable($prepend) ? ($prepend)($items) : $prepend;
+
     $append = isset($post_data["append"]) ? $post_data["append"] : "";
+    $append = is_callable($append) ? ($append)($items) : $append;
+
+    $header = isset($post_data["header"]) ? $post_data["header"] : "";
+    $header = is_callable($header) ? ($header)($items) : $header;
+
+    $footer = isset($post_data["footer"]) ? $post_data["footer"] : "";
+    $footer = is_callable($footer) ? ($footer)($items) : $footer;
 
     $output .= $prepend;
 
     if (count($items) > 0) {
         $output .= '<' . $as . ' class="' . $container_class . '">';
+        $output .= $header;
         foreach ($items as $itemIndex => $details) {
             if (isset($post_data["render"])) {
                 $details = (array) $details;
@@ -314,6 +324,7 @@ function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
                 break;
             }
         }
+        $output .= $footer;
         $output .= '</' . $as_end . '>';
         if (!isset($post_data["pagination"]) && isset($post_data["view_more"]) && $count < $total) {
             $output .= '<div class="view-more-container">';
