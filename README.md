@@ -62,6 +62,8 @@ register_grid("futurama", [
 //Use the shortcode [futurama-grid]
 ```
 
+To render a grid with no pagination by default you can use the shortcode ```[post-grid pagination="false"]```
+To render ONLY the pagination (useful if you wish to seperate the grid from the pagination) you can use the shortcode ```[post-grid pagination="only"]```. The pagination will work with grid of same post type on the page.
 
 <br />
 
@@ -302,3 +304,8 @@ await AJF.setAll("post", {
     "under-10": true
 });
 ```
+
+
+
+
+# Templates and Plugin Development

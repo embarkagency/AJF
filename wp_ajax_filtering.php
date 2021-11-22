@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: WP AJAX Filtering
-Plugin URI: https://embarkagency.com.au
+Plugin URI: #
 Description: Easily add archives for post types with ajax filtering and shortcode attributes.
 Version: 5.10.2
 Author: Daniel Garden
@@ -19,10 +19,16 @@ function wp_ajf_init()
 }
 
 $WP_AJF_DATA = [];
+$WP_AJF_TEMPLATES = [];
 
-function register_grid($post_type, $default_data = [])
+function register_grid($post_type, $default_data = [], $template_config = [])
 {
     global $WP_AJF_DATA;
+    global $WP_AJF_TEMPLATES;
+
+    if (is_string($default_data) && isset($WP_AJF_TEMPLATES[$default_data])) {
+        $default_data = array_merge($WP_AJF_TEMPLATES[$default_data], $template_config);
+    }
 
     if (!isset($WP_AJF_DATA[$post_type])) {
         $WP_AJF_DATA[$post_type] = [];
@@ -32,15 +38,38 @@ function register_grid($post_type, $default_data = [])
     }
 }
 
+function register_grid_template($post_type, $default_data = [])
+{
+    global $WP_AJF_TEMPLATES;
+    if (!isset($WP_AJF_TEMPLATES[$post_type])) {
+        $WP_AJF_TEMPLATES[$post_type] = [];
+    }
+    foreach ($default_data as $default_key => $default_property) {
+        $WP_AJF_TEMPLATES[$post_type][$default_key] = $default_property;
+    }
+}
+
 function register_filters($post_type, $filters)
 {
     global $WP_AJF_DATA;
+    global $WP_AJF_TEMPLATES;
 
     if (!isset($WP_AJF_DATA[$post_type])) {
         $WP_AJF_DATA[$post_type] = [];
     }
 
     $WP_AJF_DATA[$post_type]["temp_filters"] = $filters;
+}
+
+function register_filters_template($post_type, $filters)
+{
+    global $WP_AJF_TEMPLATES;
+
+    if (!isset($WP_AJF_TEMPLATES[$post_type])) {
+        $WP_AJF_TEMPLATES[$post_type] = [];
+    }
+
+    $WP_AJF_TEMPLATES[$post_type]["temp_filters"] = $filters;
 }
 
 function wp_ajf_get_filter_options($filters, $details)
@@ -382,7 +411,11 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
 
         $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '" data-input-type="' . $filter->type . '"';
 
-        $get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
+        $single_get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
+        $multi_get_value = isset($_GET[$ajf_post_type . '__' . $filter_key]) ? $_GET[$ajf_post_type . '__' . $filter_key] : null;
+
+        $get_value = isset($multi_get_value) ? $multi_get_value : $single_get_value;
+
         if ($filter->type === "clear") {
             $output .= '<div class="filter-text-wrapper clear-filter">';
             $output .= '<a href="javascript: void(0);"' . $default_props . '>' . $filter->name . '</a>';
@@ -505,16 +538,12 @@ add_action('init', function () {
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
 
-            $multi_atts = [];
-            // foreach ($_GET as $get_key => $get_value) {
-            //     if (strpos($get_key, '__' . $ajf_post_type) === 0) {
-            //         $get_key = str_replace('__' . $ajf_post_type, '', $get_key);
-            //         $multi_atts[$get_key] = $get_value;
-            //     }
-            // }
-
-            foreach ((count($multi_atts) < 1 ? $multi_atts : $_GET) as $get_key => $get_value) {
+            foreach ($_GET as $get_key => $get_value) {
                 if (isset($get_value) && $get_value !== "") {
+                    if (strpos($get_key, $ajf_post_type . '__') === 0) {
+                        $get_key = str_replace($ajf_post_type . '__', '', $get_key);
+                    }
+
                     $atts[$get_key] = $get_value;
                 }
             }
@@ -523,14 +552,18 @@ add_action('init', function () {
 
             $output = '';
 
-            $wrapper = isset($ajf_data_type["wrapper"]) ? $ajf_data_type["wrapper"] : "div";
-            $wrapper_end = strtok($wrapper, " ");
+            $output .= '<pre>' . var_export($atts, true) . '</pre>';
 
-            $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
-            $output .= $render["html"];
-            $output .= '</' . $wrapper_end . '>';
+            if (!isset($atts["pagination"]) || (isset($atts["pagination"]) && $atts["pagination"] !== "only")) {
+                $wrapper = isset($ajf_data_type["wrapper"]) ? $ajf_data_type["wrapper"] : "div";
+                $wrapper_end = strtok($wrapper, " ");
 
-            if (filter_var($atts["pagination"], FILTER_VALIDATE_BOOLEAN) !== false && isset($render["pagination"])) {
+                $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
+                $output .= $render["html"];
+                $output .= '</' . $wrapper_end . '>';
+            }
+
+            if ((filter_var($atts["pagination"], FILTER_VALIDATE_BOOLEAN) !== false || isset($atts["pagination"]) && $atts["pagination"] === "only") && isset($render["pagination"])) {
                 $output .= '<div class="pagination-container" data-post-type="' . $defaults["post_type"] . '">';
                 $output .= $render["pagination"];
                 $output .= '</div>';
@@ -573,3 +606,84 @@ add_action('wp_footer', function () {
 	</script>
 	<?php
 });
+
+// Some default templates
+register_grid_template("ajf-post", [
+    "data" => "post",
+    "pagination" => true,
+    "has_nav" => false,
+    "include_items" => true,
+    "count" => 10,
+    "render" => function ($details) {
+        return $details["post_title"] . "<br />";
+    },
+]);
+
+register_filters_template("ajf-post", [
+    "query" => [
+        "name" => "Search",
+        "type" => "text",
+        "matches" => function ($atts, $details) {
+            return wp_ajf_contains($atts["query"], $details["post_title"]);
+        },
+    ],
+]);
+
+register_grid_template("ajf-team", [
+    "count" => -1,
+    "class" => "team-grid",
+    "get_details" => function ($id) {
+        $details = [
+            "id" => $id,
+            "photo" => get_field("photo", $id),
+            "name" => get_the_title($id),
+            "position" => get_field("position", $id),
+            "bio" => apply_filters('the_content', get_the_content(null, false, $id)),
+        ];
+
+        return $details;
+    },
+    "render" => function ($details) {
+        return '
+			<a class="archive-item team" data-fancybox data-src="#team-bio-' . $details["id"] . '" data-touch="false" data-auto-focus="false" href="javascript:;">
+				<div class="photo-container">
+					<div class="photo" style="background-image: url(' . $details["photo"] . ')"></div>
+				</div>
+				<div class="details">
+					<div class="name">' . $details["name"] . '</div>
+					<div class="position">' . $details["position"] . '</div>
+				</div>
+
+				<div class="bio-popup texture" id="team-bio-' . $details["id"] . '" style="display: none;">
+					<div class="bio-popup-inner">
+						<div class="left-column">
+							<div class="photo-container">
+								<div class="photo" style="background-image: url(' . $details["photo"] . ')"></div>
+							</div>
+						</div>
+						<div class="right-column">
+							<button class="close-button" onClick="jQuery.fancybox.close();">Close</button>
+
+							<div class="details">
+								<h3 class="name">' . $details["name"] . '</h3>
+								<div class="position">' . $details["position"] . '</div>
+								<br />
+							</div>
+							<div class="bio">' . $details["bio"] . '</div>
+						</div>
+					</div>
+				</div>
+			</a>
+		';
+    },
+]);
+
+register_filters_template("ajf-team", [
+    "query" => [
+        "name" => "Search",
+        "type" => "text",
+        "matches" => function ($atts, $details) {
+            return wp_ajf_contains($atts["query"], $details["name"]);
+        },
+    ],
+]);
