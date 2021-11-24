@@ -309,3 +309,57 @@ await AJF.setAll("post", {
 
 
 # Templates and Plugin Development
+AJF provides a very simple templating system. To register a template is the same as registering grid except using ```register_grid_template``` instead of ```register_grid``` and ```register_filters_template``` instead of ```register_filters```.
+
+Here is an example of a template which will render a basic of posts.
+
+```php
+register_grid_template("ajf-post", [
+    "data" => "post",
+    "pagination" => true,
+    "has_nav" => false,
+    "include_items" => true,
+    "count" => 10,
+    "render" => function ($details) {
+        return $details["post_title"] . "<br />";
+    },
+]);
+
+register_filters_template("ajf-post", [
+    "query" => [
+        "name" => "Search",
+        "type" => "text",
+        "matches" => function ($atts, $details) {
+            return wp_ajf_contains($atts["query"], $details["post_title"]);
+        },
+    ],
+]);
+```
+
+Creating a template allows for using amongst multiple grids, without having to rewrite code, and can also be used by plugins to create custom functionality to be used in themes. Filters registered as a template will also be automatically available to a grid that uses the template, without having to register them with ```register_filters```.
+
+To use a template with a grid instead of specifying a configuration initialize it with the name of the template like this.
+
+```php
+    register_grid("posts", "ajf-post");
+```
+and that's it!
+
+
+But wait, there's more. Say for example you want to override any of the templates configuration, you can just pass an additional config array, the same as you would with the the ```register_grid``` function.
+
+For example if you wish to have a custom data source, turn pagination off aswell as change the count you can do something like this.
+
+```php
+register_grid("posts", "ajf-post", [
+    "data" => function() {
+        return [
+            ["post_title" => "Post 1"],
+            ["post_title" => "Post 2"],
+            ["post_title" => "Post 3"],
+        ]
+    ),
+    "pagination" => false,
+    "count" => 2,
+]);
+```

@@ -547,12 +547,8 @@ add_action('init', function () {
                     $atts[$get_key] = $get_value;
                 }
             }
-
             $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
-
             $output = '';
-
-            $output .= '<pre>' . var_export($atts, true) . '</pre>';
 
             if (!isset($atts["pagination"]) || (isset($atts["pagination"]) && $atts["pagination"] !== "only")) {
                 $wrapper = isset($ajf_data_type["wrapper"]) ? $ajf_data_type["wrapper"] : "div";
@@ -607,83 +603,6 @@ add_action('wp_footer', function () {
 	<?php
 });
 
-// Some default templates
-register_grid_template("ajf-post", [
-    "data" => "post",
-    "pagination" => true,
-    "has_nav" => false,
-    "include_items" => true,
-    "count" => 10,
-    "render" => function ($details) {
-        return $details["post_title"] . "<br />";
-    },
-]);
-
-register_filters_template("ajf-post", [
-    "query" => [
-        "name" => "Search",
-        "type" => "text",
-        "matches" => function ($atts, $details) {
-            return wp_ajf_contains($atts["query"], $details["post_title"]);
-        },
-    ],
-]);
-
-register_grid_template("ajf-team", [
-    "count" => -1,
-    "class" => "team-grid",
-    "get_details" => function ($id) {
-        $details = [
-            "id" => $id,
-            "photo" => get_field("photo", $id),
-            "name" => get_the_title($id),
-            "position" => get_field("position", $id),
-            "bio" => apply_filters('the_content', get_the_content(null, false, $id)),
-        ];
-
-        return $details;
-    },
-    "render" => function ($details) {
-        return '
-			<a class="archive-item team" data-fancybox data-src="#team-bio-' . $details["id"] . '" data-touch="false" data-auto-focus="false" href="javascript:;">
-				<div class="photo-container">
-					<div class="photo" style="background-image: url(' . $details["photo"] . ')"></div>
-				</div>
-				<div class="details">
-					<div class="name">' . $details["name"] . '</div>
-					<div class="position">' . $details["position"] . '</div>
-				</div>
-
-				<div class="bio-popup texture" id="team-bio-' . $details["id"] . '" style="display: none;">
-					<div class="bio-popup-inner">
-						<div class="left-column">
-							<div class="photo-container">
-								<div class="photo" style="background-image: url(' . $details["photo"] . ')"></div>
-							</div>
-						</div>
-						<div class="right-column">
-							<button class="close-button" onClick="jQuery.fancybox.close();">Close</button>
-
-							<div class="details">
-								<h3 class="name">' . $details["name"] . '</h3>
-								<div class="position">' . $details["position"] . '</div>
-								<br />
-							</div>
-							<div class="bio">' . $details["bio"] . '</div>
-						</div>
-					</div>
-				</div>
-			</a>
-		';
-    },
-]);
-
-register_filters_template("ajf-team", [
-    "query" => [
-        "name" => "Search",
-        "type" => "text",
-        "matches" => function ($atts, $details) {
-            return wp_ajf_contains($atts["query"], $details["name"]);
-        },
-    ],
-]);
+foreach (glob(__DIR__ . '/templates/*') as $filename) {
+    include_once $filename;
+}
