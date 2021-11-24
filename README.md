@@ -309,9 +309,9 @@ await AJF.setAll("post", {
 
 
 # Templates and Plugin Development
-AJF provides a very simple templating system. To register a template is the same as registering grid except using ```register_grid_template``` instead of ```register_grid``` and ```register_filters_template``` instead of ```register_filters```.
+AJF provides a very simple templating system. To register a template is the same as registering a grid except using ```register_grid_template``` instead of ```register_grid``` and ```register_filters_template``` instead of ```register_filters```.
 
-Here is an example of a template which will render a basic of posts.
+Here is an example of a template which will render a basic list of posts.
 
 ```php
 register_grid_template("ajf-post", [
