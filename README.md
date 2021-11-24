@@ -348,10 +348,11 @@ and that's it!
 
 But wait, there's more. Say for example you want to override any of the templates configuration, you can just pass an additional config array, the same as you would with the the ```register_grid``` function.
 
-For example if you wish to have a custom data source, turn pagination off aswell as change the count you can do something like this.
+For example if you wish to have a custom data source and turn pagination off while still keeping the same rendering method you can pass an array like this while using a template.
 
 ```php
 register_grid("posts", "ajf-post", [
+    "pagination" => false,
     "data" => function() {
         return [
             ["post_title" => "Post 1"],
@@ -359,7 +360,5 @@ register_grid("posts", "ajf-post", [
             ["post_title" => "Post 3"],
         ]
     ),
-    "pagination" => false,
-    "count" => 2,
 ]);
 ```
