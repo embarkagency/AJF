@@ -120,6 +120,7 @@ jQuery(document).ready(function($){
 			}
 
 			this.setValue(post_type, data);
+			this.set(post_type, key, value, false, false);
 			return data;
 		}
 
@@ -155,7 +156,7 @@ jQuery(document).ready(function($){
 			}
 		}
 
-		async set(post_type, key, value, shouldLoad=true) {
+		async set(post_type, key, value, shouldLoad=true, shouldTrigger=true) {
 			if(arguments.length < 3) {
 				value = key;
 				key = post_type;
@@ -174,10 +175,14 @@ jQuery(document).ready(function($){
 			const type = filter.data("input-type");
 			if(type === "checkbox") {
 				filter.prop("checked", value);
-				filter.trigger("change");
+				if(shouldTrigger) {
+					filter.trigger("change");
+				}
 			} else {
 				filter.val(value);
-				filter.trigger("change");
+				if(shouldTrigger) {
+					filter.trigger("change");
+				}
 			}
 			filter.removeAttr("data-skip-load");
 
