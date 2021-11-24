@@ -256,11 +256,6 @@ jQuery(document).ready(function($){
 			const cur_url = new URL(document.location);
 			archive_url = new URL(archive_url);
 
-			// cur_url.searchParams.forEach(function(value, key) {
-			// 	archive_url.searchParams.delete(key);
-			// 	archive_url.searchParams.set(key, value);
-			// });
-
 			if(Object.keys(this.post_types).length > 1) {
 				const params = Object.fromEntries(archive_url.searchParams);
 				for (const param in params) {
@@ -269,6 +264,12 @@ jQuery(document).ready(function($){
 					archive_url.searchParams.set(post_type + "__" + param, val);
 				}
 			}
+
+			cur_url.searchParams.forEach(function(value, key) {
+				if(!archive_url.searchParams.has(key)) {
+					archive_url.searchParams.set(key, value);
+				}
+			});
 			history.replaceState({}, '', archive_url.search);
 		}
 
