@@ -106,8 +106,12 @@ jQuery(document).ready(function($){
 			}
 
 			const type = $(el).data("input-type");
-			const key = $(el).data("type");
-			const value = $(el).val();
+			let key = $(el).data("type");
+			let value = $(el).val();
+
+			if(type === "checkbox") {
+				value = $(el).is(":checked");
+			}
 
 			const data = {
 				type,
@@ -115,12 +119,8 @@ jQuery(document).ready(function($){
 				value,
 			};
 
-			if(data.type === "checkbox") {
-				data.value = $(el).is(":checked");
-			}
-
 			this.setValue(post_type, data);
-			this.set(post_type, key, value, false, false);
+			this.set(post_type, data.key, data.value, false, false);
 			return data;
 		}
 
