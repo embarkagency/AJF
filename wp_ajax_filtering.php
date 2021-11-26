@@ -158,7 +158,7 @@ function wp_ajf_real_register_filters($post_type, $filters)
 
             $details;
             if (isset($WP_AJF_DATA[$post_type]["get_details"])) {
-                $details = ($WP_AJF_DATA[$post_type]["get_details"])($id);
+                $details = ($WP_AJF_DATA[$post_type]["get_details"])($id, []);
                 $details = (array) $details;
             } else {
                 $details = get_post($id, ARRAY_A);
@@ -264,7 +264,7 @@ function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
         while ($loop->have_posts()): $loop->the_post();
             $id = get_the_ID();
             if (isset($post_data["get_details"])) {
-                $details = ($post_data["get_details"])($id);
+                $details = ($post_data["get_details"])($id, $atts);
             } else {
                 $details = get_post($id, ARRAY_A);
             }
