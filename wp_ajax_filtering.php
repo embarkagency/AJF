@@ -429,6 +429,9 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
             $output .= '<input type="checkbox"' . $default_props . ' ' . (isset($get_value) && $get_value === "true" ? 'checked' : '') . '/>';
             $output .= '</div>';
         } else if ($filter->type === "select") {
+            if (isset($filter->multi) && $filter->multi === true) {
+                $default_props .= ' multiple';
+            }
             $output .= '<div class="filter-select-wrapper">';
             if (isset($filter->icon)) {
                 $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';

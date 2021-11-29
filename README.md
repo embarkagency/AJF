@@ -160,6 +160,7 @@ register_filters("post", [
 | `icon` | `string` | An icon to be placed next to the filter element |
 | `placeholder` | `string` | Only for text input type, placeholder for the input |
 | `options` | `array` | Only for select input type, this is all the options. Can be automatically populated with unique options from details array if slug matches |
+| `has_any` | `boolean` | Only for ``select`` filters. If false does not have an "Any" option |
 
 
 

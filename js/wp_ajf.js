@@ -12,6 +12,12 @@ jQuery(document).ready(function($){
 				$(".pagination-container[data-post-type='" + post_type + "']").html(pagination);
 			}, true);
 
+			this.on('filter', ({ post_type, skip_load, src }) => {
+				if(!skip_load && src === "bind") {
+					this.load(post_type);
+				}
+			}, true);
+
 			this.on('load-more', ({ post_type }) => {
 				this.post_types[post_type].post_count += this.post_types[post_type].default_post_count;
 				this.resetPage(post_type);
@@ -46,11 +52,13 @@ jQuery(document).ready(function($){
 				const data = $this.setFilterValue(this);
 				const post_type = $(this).attr("data-post-type");
 				data.post_type = post_type;
-				$this.trigger("filter", { data });
-
-				if(!$(this).attr("data-skip-load")) {
-					$this.load(post_type);
+				data.src = "bind";
+				if($(this).attr("data-skip-load")) {
+					data.skip_load = true;
+				} else {
+					data.skip_load = false;
 				}
+				$this.trigger("filter", { data });
 			});
 
 			$(document).on("click", ".filter-value[data-type='clear']", function() {
@@ -165,7 +173,7 @@ jQuery(document).ready(function($){
 				post_type = post_type || Object.keys(this.post_types)[0];
 			}
 
-			if(typeof value === "object") {
+			if(typeof value === "object" && !Array.isArray(value)) {
 				this.setAll(post_type, value);
 				return;
 			}
@@ -270,11 +278,12 @@ jQuery(document).ready(function($){
 				}
 			}
 
-			cur_url.searchParams.forEach(function(value, key) {
+			cur_url.searchParams.forEach((value, key) => {
 				if(!archive_url.searchParams.has(key)) {
 					archive_url.searchParams.set(key, value);
 				}
 			});
+
 			history.replaceState({}, '', archive_url.search);
 		}
 
