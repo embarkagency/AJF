@@ -228,6 +228,18 @@ function wp_ajf_run_filter($post_data, $items, $details, $atts)
 
 function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
 {
+
+    foreach ($atts as $att_key => $att) {
+        $val = $atts[$att_key];
+        if (!empty($val) && is_string($val)) {
+            $multi_val = explode("--", $val);
+
+            if (count($multi_val) > 1) {
+                $atts[$att_key] = $multi_val;
+            }
+        }
+    }
+
     $output = '';
     $pagination = '';
 
@@ -415,6 +427,9 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
         $multi_get_value = isset($_GET[$ajf_post_type . '__' . $filter_key]) ? $_GET[$ajf_post_type . '__' . $filter_key] : null;
 
         $get_value = isset($multi_get_value) ? $multi_get_value : $single_get_value;
+        $get_multi = explode("--", $get_value);
+
+        $is_multi = count($get_multi) > 1;
 
         if ($filter->type === "clear") {
             $output .= '<div class="filter-text-wrapper clear-filter">';
@@ -440,8 +455,13 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
             if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
                 $output .= '<option value="">Any</option>';
             }
+
             foreach ($filter->options as $option) {
-                $output .= '<option value="' . $option . '" ' . (isset($get_value) && $get_value === $option ? 'selected' : '') . '>' . $option . '</option>';
+                $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
+                if ($is_multi) {
+                    $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                }
+                $output .= '<option value="' . $option . '" ' . $is_selected . '>' . $option . '</option>';
             }
             $output .= '</select>';
 

@@ -179,6 +179,9 @@ jQuery(document).ready(function($){
 			}
 
 			const filter = $(".filter-value[data-type='" + key + "'][data-post-type='" + post_type + "']");
+
+			const origSkip = filter.attr("data-skip-load");
+
 			filter.attr("data-skip-load", "true");
 			const type = filter.data("input-type");
 			if(type === "checkbox") {
@@ -192,7 +195,11 @@ jQuery(document).ready(function($){
 					filter.trigger("change");
 				}
 			}
-			filter.removeAttr("data-skip-load");
+			if(origSkip) {
+				filter.attr("data-skip-load", origSkip);
+			} else {
+				filter.removeAttr("data-skip-load");
+			}
 
 			if(shouldLoad) {
 				await this.load(post_type);
@@ -216,25 +223,30 @@ jQuery(document).ready(function($){
 		}
 
 		async clear(post_type, shouldLoad=true) {
-			post_type = post_type || Object.keys(this.post_types)[0];
+			return new Promise(async (resolve, reject) => {
+				post_type = post_type || Object.keys(this.post_types)[0];
 
-			$(".filter-value[data-post-type='" + post_type + "']").each(function() {
-				$(this).attr("data-skip-load", "true");
-				const type = $(this).data("input-type");
-				if(type === "checkbox") {
-					$(this).prop("checked", false);
-				} else {
-					$(this).val("");
+				const $this = this;
+				
+				$(".filter-value[data-post-type='" + post_type + "']").each(function() {
+					$(this).attr("data-skip-load", "test");
+					const type = $(this).data("input-type");
+					if(type === "checkbox") {
+						$(this).prop("checked", false);
+					} else {
+						$(this).val("");
+					}
+
+					$(this).trigger("change");
+				});
+
+				$this.trigger("clear", { data: { post_type } });
+				if(shouldLoad) {
+					$this.load(post_type).then(r => {
+						resolve();
+					})
 				}
-
-				$(this).trigger("change");
-				$(this).removeAttr("data-skip-load");
 			});
-
-			this.trigger("clear", { data: { post_type } });
-			if(shouldLoad) {
-				await this.load(post_type);
-			}
 		}
 
 		resetPage(post_type) {
@@ -284,6 +296,12 @@ jQuery(document).ready(function($){
 				}
 			});
 
+			archive_url.searchParams.forEach((value, key) => {
+				if(value === '') {
+					archive_url.searchParams.delete(key);
+				}
+			});
+
 			history.replaceState({}, '', archive_url.search);
 		}
 
@@ -302,7 +320,11 @@ jQuery(document).ready(function($){
 
 				const archive_url = new URL(ajf_rest_url + "/" + post_type);
 				for(const property in atts) {
-					archive_url.searchParams.set(property, atts[property]);
+					let value = atts[property];
+					if(typeof value === "object" && Array.isArray(value)) {
+						value = value.join("--");
+					}
+					archive_url.searchParams.set(property, value);
 				}
 				this.replaceState(post_type, archive_url);
 				archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
