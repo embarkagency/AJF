@@ -368,6 +368,17 @@ jQuery(document).ready(function($){
 									params,
 								}
 							});
+							$this.trigger("post-render", {
+								data: {
+									post_type,
+									html: r.html,
+									items: r.items || [],
+									total: r.total,
+									response: r,
+									url: archive_url.toString(),
+									params,
+								}
+							});
 						}
 						$this.trigger("pagination", {
 							data: {
