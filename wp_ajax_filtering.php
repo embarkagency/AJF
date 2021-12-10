@@ -12,6 +12,8 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
+define( 'AJF', __FILE__ );
+
 add_action('wp_enqueue_scripts', 'wp_ajf_init');
 function wp_ajf_init()
 {
@@ -408,7 +410,7 @@ function wp_ajf_render_grid_items($atts, $post_data, $include_items = false)
     return $response;
 }
 
-function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
+function wp_ajf_render_filter($grid_type, $filter, $filter_key)
 {
     $output = '';
 
@@ -418,13 +420,13 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
         $output .= '<div class="filter-option-error">`' . $filter_key . '` property is not allowed in filters. To fix please capitalize or change.</div>';
     } else {
         if (isset($filter->name) && $filter->type !== "clear") {
-            $output .= '<label for="' . $ajf_post_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
+            $output .= '<label for="' . $grid_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
         }
 
-        $default_props = ' id="' . $ajf_post_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $ajf_post_type . '" data-input-type="' . $filter->type . '"';
+        $default_props = ' id="' . $grid_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $grid_type . '" data-input-type="' . $filter->type . '"';
 
         $single_get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
-        $multi_get_value = isset($_GET[$ajf_post_type . '__' . $filter_key]) ? $_GET[$ajf_post_type . '__' . $filter_key] : null;
+        $multi_get_value = isset($_GET[$grid_type . '__' . $filter_key]) ? $_GET[$grid_type . '__' . $filter_key] : null;
 
         $get_value = isset($multi_get_value) ? $multi_get_value : $single_get_value;
         $get_multi = explode("--", $get_value);
@@ -477,16 +479,16 @@ function wp_ajf_render_filter($ajf_post_type, $filter, $filter_key)
     return $output;
 }
 
-function wp_ajf_get_defaults($ajf_data_type, $ajf_post_type)
+function wp_ajf_get_defaults($grid_data, $grid_type)
 {
     $defaults = [];
-    if (isset($ajf_data_type["filters"])) {
-        $defaults = $ajf_data_type["filters"];
+    if (isset($grid_data["filters"])) {
+        $defaults = $grid_data["filters"];
         foreach ($defaults as $filter_key => $filter) {
             if (isset($filter->default) && !empty($filter->default)) {
                 $defaults[$filter_key] = $filter->default;
             } else if ($filter_key === "count") {
-                $defaults[$filter_key] = isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : "";
+                $defaults[$filter_key] = isset($grid_data["count"]) ? $grid_data["count"] : "";
             } else {
                 $defaults[$filter_key] = null;
             }
@@ -494,26 +496,26 @@ function wp_ajf_get_defaults($ajf_data_type, $ajf_post_type)
     }
 
     $defaults = array_merge([
-        "post_type" => $ajf_post_type,
-        "count" => isset($ajf_data_type["count"]) ? $ajf_data_type["count"] : 0,
-        "order" => isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null,
+        "post_type" => $grid_type,
+        "count" => isset($grid_data["count"]) ? $grid_data["count"] : 0,
+        "order" => isset($grid_data["order"]) ? $grid_data["order"] : null,
         "pge" => 1,
-        "pagination" => isset($ajf_data_type["pagination"]) ? $ajf_data_type["pagination"] : false,
+        "pagination" => isset($grid_data["pagination"]) ? $grid_data["pagination"] : false,
     ], $defaults);
 
     return $defaults;
 }
 
-function get_grid_data($ajf_post_type, $atts = [])
+function get_grid_data($grid_type, $atts = [])
 {
     global $WP_AJF_DATA;
 
-    $ajf_data_type = isset($WP_AJF_DATA[$ajf_post_type]) ? $WP_AJF_DATA[$ajf_post_type] : null;
+    $grid_data = isset($WP_AJF_DATA[$grid_type]) ? $WP_AJF_DATA[$grid_type] : null;
 
-    if ($ajf_data_type) {
-        $defaults = wp_ajf_get_defaults($ajf_data_type, $ajf_post_type);
+    if ($grid_data) {
+        $defaults = wp_ajf_get_defaults($grid_data, $grid_type);
         $atts = array_merge($defaults, $atts);
-        $render = wp_ajf_render_grid_items($atts, $ajf_data_type, true);
+        $render = wp_ajf_render_grid_items($atts, $grid_data, true);
 
         return $render["items"];
     }
@@ -524,57 +526,57 @@ function get_grid_data($ajf_post_type, $atts = [])
 add_action('init', function () {
     global $WP_AJF_DATA;
 
-    foreach ($WP_AJF_DATA as $ajf_post_type => $ajf_data_type) {
+    foreach ($WP_AJF_DATA as $grid_type => $grid_data) {
 
-        if (isset($ajf_data_type["temp_filters"])) {
-            $real_filters = wp_ajf_real_register_filters($ajf_post_type, $ajf_data_type["temp_filters"]);
-            $ajf_data_type["filters"] = $real_filters;
+        if (isset($grid_data["temp_filters"])) {
+            $real_filters = wp_ajf_real_register_filters($grid_type, $grid_data["temp_filters"]);
+            $grid_data["filters"] = $real_filters;
         }
 
-        $shortcode_tag = $ajf_post_type . "-grid";
+        $shortcode_tag = $grid_type . "-grid";
 
-        if (isset($ajf_data_type["filters"])) {
-            add_shortcode($ajf_post_type . '-filters', function () use ($ajf_post_type, $ajf_data_type) {
+        if (isset($grid_data["filters"])) {
+            add_shortcode($grid_type . '-filters', function () use ($grid_type, $grid_data) {
                 $output = '';
 
-                $filter_options = $ajf_data_type["filters"];
+                $filter_options = $grid_data["filters"];
 
                 $output .= '<div class="filter-options">';
                 foreach ($filter_options as $filter_key => $filter) {
-                    $output .= wp_ajf_render_filter($ajf_post_type, $filter, $filter_key);
+                    $output .= wp_ajf_render_filter($grid_type, $filter, $filter_key);
                 }
                 $output .= '</div>';
 
                 return $output;
             });
 
-            foreach ($ajf_data_type["filters"] as $filter_key => $filter) {
-                add_shortcode($ajf_post_type . "-filters-" . $filter_key, function () use ($ajf_post_type, $filter, $filter_key) {
-                    return wp_ajf_render_filter($ajf_post_type, $filter, $filter_key);
+            foreach ($grid_data["filters"] as $filter_key => $filter) {
+                add_shortcode($grid_type . "-filters-" . $filter_key, function () use ($grid_type, $filter, $filter_key) {
+                    return wp_ajf_render_filter($grid_type, $filter, $filter_key);
                 });
             }
         }
 
-        add_shortcode($shortcode_tag, function ($atts) use ($ajf_post_type, $ajf_data_type, $shortcode_tag) {
+        add_shortcode($shortcode_tag, function ($atts) use ($grid_type, $grid_data, $shortcode_tag) {
 
-            $defaults = wp_ajf_get_defaults($ajf_data_type, $ajf_post_type);
+            $defaults = wp_ajf_get_defaults($grid_data, $grid_type);
 
             $atts = shortcode_atts($defaults, $atts, $shortcode_tag);
 
             foreach ($_GET as $get_key => $get_value) {
                 if (isset($get_value) && $get_value !== "") {
-                    if (strpos($get_key, $ajf_post_type . '__') === 0) {
-                        $get_key = str_replace($ajf_post_type . '__', '', $get_key);
+                    if (strpos($get_key, $grid_type . '__') === 0) {
+                        $get_key = str_replace($grid_type . '__', '', $get_key);
                     }
 
                     $atts[$get_key] = $get_value;
                 }
             }
-            $render = wp_ajf_render_grid_items($atts, $ajf_data_type);
+            $render = wp_ajf_render_grid_items($atts, $grid_data);
             $output = '';
 
             if (!isset($atts["pagination"]) || (isset($atts["pagination"]) && $atts["pagination"] !== "only")) {
-                $wrapper = isset($ajf_data_type["wrapper"]) ? $ajf_data_type["wrapper"] : "div";
+                $wrapper = isset($grid_data["wrapper"]) ? $grid_data["wrapper"] : "div";
                 $wrapper_end = strtok($wrapper, " ");
 
                 $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
@@ -591,21 +593,21 @@ add_action('init', function () {
             return $output;
         });
 
-        add_action('rest_api_init', function () use ($ajf_post_type, $ajf_data_type) {
-            register_rest_route('ajf_get', '/' . $ajf_post_type, array(
+        add_action('rest_api_init', function () use ($grid_type, $grid_data) {
+            register_rest_route('ajf_get', '/' . $grid_type, array(
                 'permission_callback' => '__return_true',
                 'methods' => 'GET',
-                'callback' => function ($data) use ($ajf_post_type, $ajf_data_type) {
+                'callback' => function ($data) use ($grid_type, $grid_data) {
                     $atts = $data->get_params();
-                    $atts["post_type"] = $ajf_post_type;
-                    $atts["order"] = isset($ajf_data_type["order"]) ? $ajf_data_type["order"] : null;
+                    $atts["post_type"] = $grid_type;
+                    $atts["order"] = isset($grid_data["order"]) ? $grid_data["order"] : null;
 
-                    $data = wp_ajf_render_grid_items($atts, $ajf_data_type);
+                    $data = wp_ajf_render_grid_items($atts, $grid_data);
 
                     $result = new WP_REST_Response($data, 200);
 
-                    if (!isset($ajf_data_type["cache"]) || isset($ajf_data_type["cache"]) && $ajf_data_type["cache"] !== false) {
-                        $cache_time = isset($ajf_data_type["cache"]) && is_numeric($ajf_data_type["cache"]) ? $ajf_data_type["cache"] : 3600;
+                    if (!isset($grid_data["cache"]) || isset($grid_data["cache"]) && $grid_data["cache"] !== false) {
+                        $cache_time = isset($grid_data["cache"]) && is_numeric($grid_data["cache"]) ? $grid_data["cache"] : 3600;
 
                         $result->set_headers(array('Cache-Control' => 'max-age=' . $cache_time));
                     }
