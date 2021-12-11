@@ -51,7 +51,7 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 	 * @return string Widget icon.
 	 */
 	public function get_icon() {
-		return 'fas fa-filter';
+		return 'fad fa-filter';
 	}
 
 	/**
@@ -91,10 +91,9 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 			'grid_type',
 			[
 				'label' => __( 'Select Grid', 'plugin-domain' ),
-				'type' => \Elementor\Controls_Manager::SELECT2,
-				'multiple' => false,
+				'type' => \Elementor\Controls_Manager::SELECT,
 				'options' => $AJF->get_grids(),
-				'default' => [],
+				'default' => $AJF->get_first_grid_type(),
 			]
 		);
 

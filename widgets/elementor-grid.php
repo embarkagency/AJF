@@ -91,10 +91,9 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'grid_type',
 			[
 				'label' => __( 'Select Grid', 'plugin-domain' ),
-				'type' => \Elementor\Controls_Manager::SELECT2,
-				'multiple' => false,
+				'type' => \Elementor\Controls_Manager::SELECT,
 				'options' => $AJF->get_grids(),
-				'default' => [],
+				'default' => $AJF->get_first_grid_type(),
 			]
 		);
 

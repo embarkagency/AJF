@@ -105,6 +105,16 @@ class AJF_Instance
     }
     
     /**
+     * get_first_grid_type
+     *
+     * @return void
+     */
+    function get_first_grid_type() {
+        $grids = $this->get_grids();
+        return array_shift($grids);
+    }
+    
+    /**
      * real_register_filters
      *
      * @param  mixed $grid_type
