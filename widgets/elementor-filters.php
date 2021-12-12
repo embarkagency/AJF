@@ -87,15 +87,12 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 			]
 		);
 
-		$this->add_control(
-			'grid_type',
-			[
-				'label' => __( 'Select Grid', 'plugin-domain' ),
-				'type' => \Elementor\Controls_Manager::SELECT,
-				'options' => $AJF->get_grids(),
-				'default' => $AJF->get_first_grid_type(),
-			]
-		);
+		$this->add_control('grid_type', [
+			'label' => __( 'Select Grid', 'plugin-domain' ),
+			'type' => \Elementor\Controls_Manager::SELECT,
+			'options' => $AJF->get_grids(),
+			'default' => $AJF->get_first_grid_type(),
+		]);
 
 		$this->end_controls_section();
 

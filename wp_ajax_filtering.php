@@ -44,9 +44,9 @@ class AJF_Instance
      */
     function init_actions()
     {
-        add_action('wp_enqueue_scripts', [ $this, 'init_scripts' ]);
-        add_action('init', [ $this, 'init_shortcodes' ]);
-        add_action('wp_footer', [ $this, 'init_footer_config' ]);
+        add_action('wp_enqueue_scripts', [ $this, 'init_scripts' ], 1000);
+        add_action('init', [ $this, 'init_shortcodes' ], 1000);
+        add_action('wp_footer', [ $this, 'init_footer_config' ], 1000);
     }
 
     /**
@@ -56,7 +56,7 @@ class AJF_Instance
      */
     function init_scripts()
     {
-        wp_enqueue_script('wp-ajf-js', plugins_url('/js/wp_ajf.js', __FILE__), array('jquery'));
+        wp_enqueue_script('wp-ajf-js', plugins_url('/js/ajf-main.js', __FILE__), array('jquery'));
     }
 
     /**
@@ -76,7 +76,7 @@ class AJF_Instance
             // Let Elementor know about our widget
             Plugin::instance()->widgets_manager->register_widget_type( $grid_widget );
             Plugin::instance()->widgets_manager->register_widget_type( $filters_widget );
-        }); 
+        }, 1000); 
     }
 
     /**
@@ -531,7 +531,10 @@ class AJF_Instance
                 if (isset($grid_data["get_details"])) {
                     $details = ($grid_data["get_details"])($id, $atts);
                 } else {
-                    $details = get_post($id, ARRAY_A);
+                    $default_fields = get_post($id, ARRAY_A);
+                    $acf_fields = get_fields($id);
+                    $acf_fields = isset($acf_fields) && !empty($acf_fields) ? $acf_fields : [];
+                    $details = array_merge($default_fields, $acf_fields);
                 }
     
                 $items = $this->run_filter($grid_data, $items, $details, $atts);
@@ -796,7 +799,7 @@ class AJF_Instance
                     return $result;
                 },
             ));
-        });
+        }, 1000);
     }
 
     /**
@@ -833,6 +836,20 @@ class AJF_Instance
     
         return $defaults;
     }
+    
+    /**
+     * trigger_init
+     *
+     * @param  mixed $grid_type
+     * @return void
+     */
+    function trigger_init($grid_type) {
+        $this->set_grid_filters($grid_type);
+        $this->add_filters_shortcode($grid_type);
+        $this->add_filter_shortcode($grid_type);
+        $this->add_grid_shortcode($grid_type);
+        $this->add_rest_route($grid_type);
+    }
 
     /**
      * init_shortcodes
@@ -842,11 +859,7 @@ class AJF_Instance
     function init_shortcodes()
     {
         foreach ($this->grids as $grid_type => $grid_data) {
-            $this->set_grid_filters($grid_type);
-            $this->add_filters_shortcode($grid_type);
-            $this->add_filter_shortcode($grid_type);
-            $this->add_grid_shortcode($grid_type);
-            $this->add_rest_route($grid_type);
+            $this->trigger_init($grid_type);
         }
     }
 
