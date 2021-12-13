@@ -15,6 +15,9 @@ if (!defined('ABSPATH')) {
 
 use Elementor\Plugin;
 
+require plugin_dir_path( __FILE__ ) . '/Mustache/Autoloader.php';
+Mustache_Autoloader::register();
+
 
 define( 'AJF', __FILE__ );
 
@@ -27,6 +30,8 @@ class AJF_Instance
      */
     function __construct()
     {
+        $this->version = '1';
+
         $this->grids = [];
         $this->templates = [];
 
@@ -44,8 +49,10 @@ class AJF_Instance
      */
     function init_actions()
     {
+        add_filter('rest_request_before_callbacks', [ $this, 'peak_cache' ], 1000, 3);
         add_action('wp_enqueue_scripts', [ $this, 'init_scripts' ], 1000);
         add_action('init', [ $this, 'init_shortcodes' ], 1000);
+        add_action('rest_api_init', [ $this, 'init_rest_api' ], 1000);
         add_action('wp_footer', [ $this, 'init_footer_config' ], 1000);
     }
 
@@ -78,6 +85,176 @@ class AJF_Instance
             Plugin::instance()->widgets_manager->register_widget_type( $filters_widget );
         }, 1000); 
     }
+    
+    /**
+     * register_from_settings
+     *
+     * @param  mixed $settings
+     * @param  mixed $include_cache
+     * @return void
+     */
+    function register_from_settings($settings, $include_cache=false)
+    {
+        if(isset($settings['source']) && !empty($settings['source'])){
+			$source = $settings['source'];
+			$grid_type = sanitize_title($source . '-elementor');
+            
+
+            if(isset($settings['unique_id']) && !empty($settings['unique_id'])){
+                $grid_type .= '-' . sanitize_title($settings['unique_id']);
+            }
+
+			$config = ['data' => $source];
+			
+			if(isset($settings['count']) && !empty($settings['count'])){
+				$config['count'] = $settings['count'];
+			}
+
+			if(isset($settings['pagination']) && !empty($settings['pagination'])){
+				$config['pagination'] = true;;
+			} else {
+				$config['pagination'] = false;
+			}
+
+			if(isset($settings['has_nav']) && !empty($settings['has_nav'])){
+				$config['has_nav'] = true;
+			} else {
+				$config['has_nav'] = false;
+			}
+
+            $config["order"] = "random";
+
+            if(isset($settings['order']) && $settings["order"] !== "default") {
+
+                
+
+            }
+
+            if(isset($settings['debug_mode']) && !empty($settings['debug_mode'])){
+                $config["render"] = function($details) use($settings) {
+                    return $this->debug_mode_variables($details);
+                };
+            } else {
+                $config["render"] = $settings["render_template"];
+            }
+
+			$this->register_grid($grid_type, $config);
+			$this->trigger_init($grid_type);
+
+            if($include_cache) {
+                $this->set_cache($grid_type, $settings);
+            }
+
+            return '[' . $grid_type . '-grid]';
+        }
+    }
+
+    function render_from_template($template, $details)
+    {
+        $m = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
+        return $m->render($template, $details);
+    }
+    
+    /**
+     * get_variables_as_string
+     *
+     * @param  mixed $array
+     * @param  mixed $prev_key
+     * @return void
+     */
+    function get_variables_as_string($array, $prev_key='')
+    {
+        $variables = [];
+        foreach($array as $key => $value){
+            if(is_array($value)){
+                $variables = array_merge($variables, $this->get_variables_as_string($value, $key));
+            } else {
+                if($prev_key != ''){
+                    $variables[] = $prev_key . '.' . $key;
+                } else {
+                    $variables[] = $key;
+                }
+            }
+        }
+        return $variables;
+    }
+    
+    /**
+     * debug_mode_variables
+     *
+     * @param  mixed $details
+     * @return void
+     */
+    function debug_mode_variables($details)
+    {
+        $variables = $this->get_variables_as_string($details);
+        return '<pre>' . var_export($details, true) . '</pre>';
+    }
+    
+    /**
+     * cache_key
+     *
+     * @param  mixed $grid_type
+     * @return void
+     */
+    function cache_key($grid_type)
+    {
+        return 'ajf-cache' . $grid_type;
+    }
+    
+    /**
+     * set_cache
+     *
+     * @param  mixed $grid_type
+     * @param  mixed $settings
+     * @return void
+     */
+    function set_cache($grid_type, $settings)
+    {
+        $cache = get_transient($this->cache_key($grid_type));
+        if($cache) {
+            delete_transient($this->cache_key($grid_type));
+        }
+        $encoded = json_encode($settings);
+        set_transient($this->cache_key($grid_type), $encoded);
+        return $settings;
+    }
+    
+    /**
+     * get_cache
+     *
+     * @param  mixed $grid_type
+     * @return void
+     */
+    function get_cache($grid_type)
+    {
+        $settings = get_transient($this->cache_key($grid_type));
+        if ($settings === false) {
+            return false;
+        } else {
+            return (array) json_decode($settings);
+        }
+    }
+    
+    /**
+     * peak_cache
+     *
+     * @param  mixed $response
+     * @param  mixed $handler
+     * @param  mixed $request
+     * @return void
+     */
+    function peak_cache( $response, $handler, WP_REST_Request $request )
+    {
+        $params = $request->get_params();
+        if(isset($params["post_type"]) && !empty($params["post_type"])){
+            $grid_type = $params["post_type"];
+            $settings = $this->get_cache($grid_type);
+            if($settings) {
+                $this->register_from_settings($settings);
+            }
+        }
+    }
 
     /**
      * set_grid_filters
@@ -96,7 +273,8 @@ class AJF_Instance
      *
      * @return void
      */
-    function get_grids() {
+    function get_grids()
+    {
         $grids = [];
         foreach ($this->grids as $grid_type => $grid_data) {
             $grids[$grid_type] = $grid_type;
@@ -109,7 +287,8 @@ class AJF_Instance
      *
      * @return void
      */
-    function get_first_grid_type() {
+    function get_first_grid_type()
+    {
         $grids = $this->get_grids();
         return array_shift($grids);
     }
@@ -168,15 +347,7 @@ class AJF_Instance
                 $loop = new WP_Query($args);
                 while ($loop->have_posts()): $loop->the_post();
                     $id = get_the_ID();
-        
-                    $details;
-                    if (isset($grid_data["get_details"])) {
-                        $details = ($grid_data["get_details"])($id, []);
-                        $details = (array) $details;
-                    } else {
-                        $details = get_post($id, ARRAY_A);
-                    }
-        
+                    $details = $this->get_post_details($id, $grid_data);
                     $filters = $this->get_filter_options($filters, $details);
                 endwhile;
                 wp_reset_postdata();
@@ -191,6 +362,34 @@ class AJF_Instance
 
             return $filters;
         }
+    }
+    
+    /**
+     * get_post_details
+     *
+     * @param  mixed $id
+     * @param  mixed $grid_data
+     * @param  mixed $atts
+     * @return void
+     */
+    function get_post_details($id, $grid_data, $atts=[])
+    {
+        $details = [];
+        if (isset($grid_data["get_details"])) {
+            $details = ($grid_data["get_details"])($id, $atts);
+            $details = (array) $details;
+        } else {
+            $default_fields = get_post($id, ARRAY_A);
+            $extra_fields = [
+                'thumbnail' => get_the_post_thumbnail_url($id, 'full'),
+                'permalink' => get_the_permalink($id)
+            ];
+            $acf_fields = get_fields($id);
+            $acf_fields = isset($acf_fields) && !empty($acf_fields) ? $acf_fields : [];
+            $details = array_merge($default_fields, $extra_fields, $acf_fields);
+        }
+
+        return $details;
     }
 
     /**
@@ -528,15 +727,7 @@ class AJF_Instance
     
             while ($loop->have_posts()): $loop->the_post();
                 $id = get_the_ID();
-                if (isset($grid_data["get_details"])) {
-                    $details = ($grid_data["get_details"])($id, $atts);
-                } else {
-                    $default_fields = get_post($id, ARRAY_A);
-                    $acf_fields = get_fields($id);
-                    $acf_fields = isset($acf_fields) && !empty($acf_fields) ? $acf_fields : [];
-                    $details = array_merge($default_fields, $acf_fields);
-                }
-    
+                $details = $this->get_post_details($id, $grid_data, $atts);
                 $items = $this->run_filter($grid_data, $items, $details, $atts);
     
             endwhile;
@@ -614,7 +805,12 @@ class AJF_Instance
                 if (isset($grid_data["render"])) {
                     $details = (array) $details;
                     $details["index"] = $itemIndex;
-                    $output .= ($grid_data["render"])($details, $atts);
+
+                    if(is_string($grid_data["render"])) {
+                        $output .= $this->render_from_template($grid_data["render"], $details);
+                    } else {
+                        $output .= ($grid_data["render"])($details, $atts);
+                    }
                 } else {
                     $output .= "Please specify a render function";
                     break;
@@ -766,40 +962,39 @@ class AJF_Instance
 
         return [];
     }
- 
-    /**
-     * add_rest_route
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function add_rest_route($grid_type)
+
+    function init_rest_api()
     {
-        add_action('rest_api_init', function () use ($grid_type) {            
-            register_rest_route($this->rest_route, '/' . $grid_type, array(
-                'permission_callback' => '__return_true',
-                'methods' => 'GET',
-                'callback' => function ($data) use ($grid_type) {
+        register_rest_route($this->rest_route, '/v' . $this->version, array(
+            'permission_callback' => '__return_true',
+            'methods' => 'GET',
+            'callback' => function ($data) {
+                $atts = $data->get_params();
+                $grid_type = isset($atts["post_type"]) ? $atts["post_type"] : "";
+
+                if(isset($this->grids[$grid_type])) {
                     $grid_data = $this->grids[$grid_type];
-
-                    $atts = $data->get_params();
-                    $atts["post_type"] = $grid_type;
+    
+                    $atts["grid_type"] = $grid_type;
                     $atts["order"] = isset($grid_data["order"]) ? $grid_data["order"] : null;
-
+    
                     $data = $this->render_grid($atts, $grid_data);
-
+    
                     $result = new WP_REST_Response($data, 200);
-
+    
                     if (!isset($grid_data["cache"]) || isset($grid_data["cache"]) && $grid_data["cache"] !== false) {
                         $cache_time = isset($grid_data["cache"]) && is_numeric($grid_data["cache"]) ? $grid_data["cache"] : 3600;
-
+    
                         $result->set_headers(array('Cache-Control' => 'max-age=' . $cache_time));
                     }
-
+    
                     return $result;
-                },
-            ));
-        }, 1000);
+                } else {
+                    return new WP_Error('rest_grid_type_not_found', 'Grid type not found', array('status' => 404));
+                }
+                
+            },
+        ));  
     }
 
     /**
@@ -848,7 +1043,6 @@ class AJF_Instance
         $this->add_filters_shortcode($grid_type);
         $this->add_filter_shortcode($grid_type);
         $this->add_grid_shortcode($grid_type);
-        $this->add_rest_route($grid_type);
     }
 
     /**
@@ -958,7 +1152,7 @@ class AJF_Instance
     {
         ?>
         <script>
-            window.ajf_rest_url = '<?=get_rest_url(null, $this->rest_route);?>';
+            window.ajf_rest_url = '<?=get_rest_url(null, $this->rest_route . '/v' . $this->version);?>';
         </script>
         <?php
     }

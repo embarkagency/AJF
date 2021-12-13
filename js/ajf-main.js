@@ -300,6 +300,10 @@ jQuery(document).ready(function($){
 				if(value === '') {
 					archive_url.searchParams.delete(key);
 				}
+
+				if(key.split('__').length > 1 && !this.postType(key.split('__')[0])) {
+					archive_url.searchParams.delete(key);
+				}
 			});
 
 			history.replaceState({}, '', archive_url.search);
@@ -318,7 +322,7 @@ jQuery(document).ready(function($){
 					$this.post_types[post_type].post_count = atts["count"];
 				}
 
-				const archive_url = new URL(ajf_rest_url + "/" + post_type);
+				const archive_url = new URL(ajf_rest_url);
 				for(const property in atts) {
 					let value = atts[property];
 					if(typeof value === "object" && Array.isArray(value)) {
@@ -327,6 +331,8 @@ jQuery(document).ready(function($){
 					archive_url.searchParams.set(property, value);
 				}
 				this.replaceState(post_type, archive_url);
+				
+				archive_url.searchParams.set("post_type", post_type);
 				archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
 	
 				const params = archive_url.searchParams;

@@ -105,13 +105,22 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'options' => get_post_types([], 'names'),
 		]);
 
+		$this->add_control('unique_id', [
+			'label' => __( 'Unique ID', self::$slug ),
+			'type' => \Elementor\Controls_Manager::TEXT,
+			'default' => __( '', self::$slug ),
+			'placeholder' => __( '', self::$slug ),
+			'description' => 'Set a unique ID if you have multiple grids on the same page to avoid conflicts otherwise can be left blank.',
+		]);
+
 		$this->add_control('count', [
 			'label' => __( 'Count', self::$slug ),
 			'type' => \Elementor\Controls_Manager::NUMBER,
-			'min' => -1,
+			'min' => 0,
 			'max' => 100,
 			'step' => 1,
-			'default' => 10,
+			'default' => 12,
+			'description' => 'Set to 0 to show all results.',
 		]);
 
 		$this->add_control('pagination', [
@@ -132,6 +141,46 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'default' => 'yes',
 		]);
 
+		$this->add_control('order_by', [
+			'label' => __( 'Order By', self::$slug ),
+			'type' => \Elementor\Controls_Manager::SELECT,
+			'default' => 'default',
+			'options' => [
+				'default' => 'Default',
+				'random' => 'Random',
+				'id-0' => 'ID (highest first)',
+				'id-9' => 'ID (lowest first)',
+				'title-a' => 'Title (A-Z)',
+				'title-z' => 'Title (Z-A)',
+				'date-old' => 'Date Posted (oldest first)',
+				'date-new' => 'Date Posted (newest first)',
+			],
+		]);
+
+		$default_render = '<div class="archive-item post">
+	<img src="{{thumbnail}}" />
+	<h4>{{post_title}}</h4>
+	<a href="{{permalink}}">View Post</a>
+</div>';
+		$this->add_control('render_template', [
+			'label' => __( 'Render Template (with Mustache)', self::$slug ),
+			'type' => \Elementor\Controls_Manager::CODE,
+			'rows' => 10,
+			'language' => 'html',
+			'default' => __( $default_render, self::$slug ),
+			'description' => 'Templating uses Mustache syntax. <br />Example variables: {{post_title}}, {{post_content}}.<br /><a href="https://mustache.github.io/mustache.5.html" target="_blank">View Documentation</a>',
+			'placeholder' => __( '', self::$slug ),
+		]);
+
+		$this->add_control('debug_mode', [
+			'label' => __( 'Debug Mode', self::$slug ),
+			'type' => \Elementor\Controls_Manager::SWITCHER,
+			'label_on' => __( 'On', self::$slug ),
+			'label_off' => __( 'Off', self::$slug ),
+			'return_value' => 'on',
+			'default' => '',
+		]);
+
 		$this->end_controls_section();
 
 	}
@@ -148,41 +197,11 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
         global $AJF;
 
 		$settings = $this->get_settings_for_display();
+		$shortcode = $AJF->register_from_settings($settings, true);
 
-        if(isset($settings['source']) && !empty($settings['source'])){
-			$source = $settings['source'];
-			$grid_type = $source . '-elementor';
-			unset($settings['source']);
-
-			$config = ['data' => $source];
-			
-			if(isset($settings['count']) && !empty($settings['count'])){
-				$config['count'] = $settings['count'];
-			}
-
-			if(isset($settings['pagination']) && !empty($settings['pagination'])){
-				$config['pagination'] = true;;
-			} else {
-				$config['pagination'] = false;
-			}
-
-			if(isset($settings['has_nav']) && !empty($settings['has_nav'])){
-				$config['has_nav'] = true;
-			} else {
-				$config['has_nav'] = false;
-			}
-
-			$config["render"] = function ($details) {
-                return $details["post_title"] . "<br />";
-            };
-
-			// echo '<pre>' . var_export($settings, true) . '</pre>';
-
-			$AJF->register_grid($grid_type, $config);
-			$AJF->trigger_init($grid_type);
-
-            echo do_shortcode('[' . $grid_type . '-grid]');
-        }
+		if($shortcode) {
+			echo do_shortcode($shortcode);
+		}
 	}
 
 }
