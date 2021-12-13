@@ -35,7 +35,7 @@ class AJF_Instance
         $this->grids = [];
         $this->templates = [];
 
-        $this->rest_route = 'ajf_get';
+        $this->rest_route = 'ajf';
 
         $this->init_actions();
         $this->init_default_templates();
@@ -122,12 +122,48 @@ class AJF_Instance
 				$config['has_nav'] = false;
 			}
 
-            $config["order"] = "random";
+				// random
+				// id-0
+				// id-9
+				// title-a
+				// title-z
+				// date-old
+				// date-new
 
-            if(isset($settings['order']) && $settings["order"] !== "default") {
-
-                
-
+            if(isset($settings['order_by']) && $settings["order_by"] !== "default") {
+                $order = $settings["order_by"];
+                if($order === "random") {
+                    $config["order"] = "random";
+                } else if($order === "id-0") {
+                    $config["order"] = function($a, $b) {
+                        return $a['ID'] - $b['ID'];
+                    };
+                } else if($order === "id-9") {
+                    $config["order"] = function($a, $b) {
+                        return $b['ID'] - $a['ID'];
+                    };
+                }
+                else if($order === "title-a") {
+                    $config["order"] = function($a, $b) {
+                        return strnatcmp($a['post_title'], $b['post_title']);
+                    };
+                } else if($order === "title-z") {
+                    $config["order"] = function($b, $a) {
+                        return strnatcmp($a['post_title'], $b['post_title']);
+                    };
+                } else if($order === "date-old") {
+                    $config["order"] = function($a, $b) {
+                        $t1 = strtotime($a['post_modified']);
+                        $t2 = strtotime($b['post_modified']);
+                        return $t1 - $t2;
+                    };
+                } else if($order === "date-new") {
+                    $config["order"] = function($a, $b) {
+                        $t1 = strtotime($a['post_modified']);
+                        $t2 = strtotime($b['post_modified']);
+                        return $t2 - $t1;
+                    };
+                }
             }
 
             if(isset($settings['debug_mode']) && !empty($settings['debug_mode'])){
@@ -137,6 +173,8 @@ class AJF_Instance
             } else {
                 $config["render"] = $settings["render_template"];
             }
+
+            $config["cache"] = false;
 
 			$this->register_grid($grid_type, $config);
 			$this->trigger_init($grid_type);
@@ -890,7 +928,7 @@ class AJF_Instance
                 $wrapper = isset($grid_data["wrapper"]) ? $grid_data["wrapper"] : "div";
                 $wrapper_end = strtok($wrapper, " ");
 
-                $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '">';
+                $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '" data-no-cache="' . (isset($grid_data["cache"]) && $grid_data["cache"] === false ? "true" : "false") . '">';
                 $output .= $render["html"];
                 $output .= '</' . $wrapper_end . '>';
             }

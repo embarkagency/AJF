@@ -148,12 +148,12 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'options' => [
 				'default' => 'Default',
 				'random' => 'Random',
-				'id-0' => 'ID (highest first)',
-				'id-9' => 'ID (lowest first)',
+				'id-0' => 'ID (lowest first)',
+				'id-9' => 'ID (highest first)',
 				'title-a' => 'Title (A-Z)',
 				'title-z' => 'Title (Z-A)',
-				'date-old' => 'Date Posted (oldest first)',
-				'date-new' => 'Date Posted (newest first)',
+				'date-old' => 'Date Modified (oldest first)',
+				'date-new' => 'Date Modified (newest first)',
 			],
 		]);
 

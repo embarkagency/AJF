@@ -14,6 +14,9 @@ class AJFElementorWidget extends elementorModules.frontend.handlers.Base {
 
 jQuery(window).on('elementor/frontend/init', () => {
     const addHandler = ($element) => {
+        if(elementorFrontend.isEditMode()) {
+            window.AJF = new AJF_class(jQuery);
+        }
         elementorFrontend.elementsHandler.addHandler(AJFElementorWidget, {
             $element,
         });
