@@ -88,23 +88,19 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 	protected function register_controls() {
         global $AJF;
 
-		$this->start_controls_section(
-			'content_section',
-			[
-				'label' => __( 'Content', self::$slug ),
-				'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
-			]
-		);
+		$this->start_controls_section('config_section', [
+			'label' => __( 'Configuration', self::$slug ),
+			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
+		]);
 
 		$this->add_control('grid_type', [
-			'label' => __( 'Select Grid', 'plugin-domain' ),
+			'label' => __( 'Select Grid', self::$slug ),
 			'type' => \Elementor\Controls_Manager::SELECT,
 			'options' => $AJF->get_grids(),
 			'default' => $AJF->get_first_grid_type(),
 		]);
 
 		$this->end_controls_section();
-
 	}
 
 	/**

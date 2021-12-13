@@ -88,7 +88,7 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 	protected function register_controls() {
         global $AJF;
 
-		$this->start_controls_section('content_section', [
+		$this->start_controls_section('config_section', [
 			'label' => __( 'Configuration', self::$slug ),
 			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
