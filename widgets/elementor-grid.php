@@ -93,11 +93,6 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
 
-		//Grid Slug (text)
-		//Source (select) (post_type, external_api)
-		//
-
-
 		$this->add_control('source', [
 			'label' => __( 'Source', self::$slug ),
 			'type' => \Elementor\Controls_Manager::SELECT,
@@ -197,7 +192,7 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
         global $AJF;
 
 		$settings = $this->get_settings_for_display();
-		$shortcode = $AJF->register_from_settings($settings, true);
+		$shortcode = $AJF->register_grid_widget($settings, true);
 
 		if($shortcode) {
 			echo do_shortcode($shortcode);

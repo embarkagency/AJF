@@ -12,6 +12,15 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 
     public static $slug = 'ajf-filters';
 
+	public function __construct($data = [], $args = null) {
+		parent::__construct($data, $args);
+		wp_register_script( 'ajf-elementor-js', plugins_url('../js/ajf-elementor.js', __FILE__), [ 'elementor-frontend' ], '1.0.0', true );
+	}
+  
+	public function get_script_depends() {
+		return [ 'ajf-elementor-js' ];
+	}
+
 	/**
 	 * Get widget name.
 	 *
@@ -110,13 +119,11 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
         global $AJF;
 
 		$settings = $this->get_settings_for_display();
+		$shortcode = $AJF->register_filters_widget($settings, true);
 
-        if(isset($settings['grid_type']) && !empty($settings['grid_type'])){
-            echo do_shortcode('[' . $settings['grid_type'] . '-filters]');
-        }
-
-        // echo '<pre>' . var_export($settings, true) . '</pre>';
-
+		if($shortcode) {
+			echo do_shortcode($shortcode);
+		}
 	}
 
 }

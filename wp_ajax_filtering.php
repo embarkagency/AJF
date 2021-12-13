@@ -87,13 +87,13 @@ class AJF_Instance
     }
     
     /**
-     * register_from_settings
+     * register_grid_widget
      *
      * @param  mixed $settings
      * @param  mixed $include_cache
      * @return void
      */
-    function register_from_settings($settings, $include_cache=false)
+    function register_grid_widget($settings, $include_cache=false)
     {
         if(isset($settings['source']) && !empty($settings['source'])){
 			$source = $settings['source'];
@@ -121,14 +121,6 @@ class AJF_Instance
 			} else {
 				$config['has_nav'] = false;
 			}
-
-				// random
-				// id-0
-				// id-9
-				// title-a
-				// title-z
-				// date-old
-				// date-new
 
             if(isset($settings['order_by']) && $settings["order_by"] !== "default") {
                 $order = $settings["order_by"];
@@ -174,7 +166,8 @@ class AJF_Instance
                 $config["render"] = $settings["render_template"];
             }
 
-            $config["cache"] = false;
+            // $config["cache"] = false;
+            $config["is_widget"] = true;
 
 			$this->register_grid($grid_type, $config);
 			$this->trigger_init($grid_type);
@@ -185,6 +178,10 @@ class AJF_Instance
 
             return '[' . $grid_type . '-grid]';
         }
+    }
+
+    function register_filters_widget($settings, $include_cache = false) {
+        
     }
 
     function render_from_template($template, $details)
@@ -289,7 +286,7 @@ class AJF_Instance
             $grid_type = $params["post_type"];
             $settings = $this->get_cache($grid_type);
             if($settings) {
-                $this->register_from_settings($settings);
+                $this->register_grid_widget($settings);
             }
         }
     }
@@ -928,19 +925,40 @@ class AJF_Instance
                 $wrapper = isset($grid_data["wrapper"]) ? $grid_data["wrapper"] : "div";
                 $wrapper_end = strtok($wrapper, " ");
 
-                $output .= '<' . $wrapper . ' class="archive-container" data-post-type="' . $defaults["post_type"] . '" data-post-count="' . $atts["count"] . '" data-page="' . $atts["pge"] . '" data-no-cache="' . (isset($grid_data["cache"]) && $grid_data["cache"] === false ? "true" : "false") . '">';
+                $html_attributes = [
+                    "class" => "archive-container",
+                    "data-post-type" => $grid_type,
+                    "data-post-count" => $atts["count"],
+                    "data-page" => $atts["pge"],
+                    "data-no-cache" => (isset($grid_data["cache"]) && $grid_data["cache"] === false ? "true" : "false"),
+                ];
+
+                if(isset($grid_data["is_widget"]) && $grid_data["is_widget"] === true) {
+                    $html_attributes["data-is-widget"] = "true";
+                }
+
+                $output .= '<' . $wrapper . ' ' . $this->html_attributes($html_attributes) . '>';
                 $output .= $render["html"];
                 $output .= '</' . $wrapper_end . '>';
             }
 
             if ((filter_var($atts["pagination"], FILTER_VALIDATE_BOOLEAN) !== false || isset($atts["pagination"]) && $atts["pagination"] === "only") && isset($render["pagination"])) {
-                $output .= '<div class="pagination-container" data-post-type="' . $defaults["post_type"] . '">';
+                $output .= '<div class="pagination-container" data-post-type="' . $grid_type . '">';
                 $output .= $render["pagination"];
                 $output .= '</div>';
             }
 
             return $output;
         });
+    }
+
+    function html_attributes($attributes)
+    {
+        $html = '';
+        foreach ($attributes as $key => $value) {
+            $html .= $key . '="' . $value . '" ';
+        }
+        return $html;
     }
 
     /**
