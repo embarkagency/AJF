@@ -114,6 +114,36 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 			'description' => 'This should be the same as the ID of the AJF Grid these filters should control.',
 		]);
 
+		$this->add_control('filter_type', [
+			'label' => __( 'Filter Type', self::$slug ),
+			'type' => \Elementor\Controls_Manager::HIDDEN,
+			'default' => 'text',
+		]);
+
+		$this->add_control('name', [
+			'label' => __( 'Label', self::$slug ),
+			'type' => \Elementor\Controls_Manager::TEXT,
+			'default' => __( '', self::$slug ),
+			'placeholder' => __( '', self::$slug ),
+		]);
+
+		$this->add_control('slug', [
+			'label' => __( 'Slug', self::$slug ),
+			'type' => \Elementor\Controls_Manager::TEXT,
+			'default' => __( '', self::$slug ),
+			'placeholder' => __( '', self::$slug ),
+			'description' => 'Unique slug for filters, primary used for the URL.',
+		]);
+
+		$this->add_control('placeholder', [
+			'label' => __( 'Placeholder', self::$slug ),
+			'type' => \Elementor\Controls_Manager::TEXT,
+			'default' => __( '', self::$slug ),
+			'placeholder' => __( '', self::$slug ),
+		]);
+
+
+
 		$this->end_controls_section();
 	}
 

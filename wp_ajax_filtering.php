@@ -98,7 +98,6 @@ class AJF_Instance
         if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
 			$grid_type = sanitize_title($settings['source'] . '-elementor');
-            
 
             if(isset($settings['unique_id']) && !empty($settings['unique_id'])){
                 $grid_type .= '-' . sanitize_title($settings['unique_id']);
@@ -166,7 +165,6 @@ class AJF_Instance
                 $config["render"] = $settings["render_template"];
             }
 
-            // $config["cache"] = false;
             $config["is_widget"] = true;
             $config["theme_atts"] = [
                 "data-widget-source" => $settings["source"],
@@ -183,32 +181,67 @@ class AJF_Instance
             return '[' . $grid_type . '-grid]';
         }
     }
-
-    function register_filters_widget($settings, $include_cache = false) {
+    
+    /**
+     * register_filters_widget
+     *
+     * @param  mixed $settings
+     * @param  mixed $include_cache
+     * @return void
+     */
+    function register_filters_widget($settings, $include_cache = false)
+    {
         if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
 			$grid_type = sanitize_title($settings['source'] . '-elementor');
-            
 
             if(isset($settings['unique_id']) && !empty($settings['unique_id'])){
                 $grid_type .= '-' . sanitize_title($settings['unique_id']);
             }
 
-			$config = [
+            $config = [];
 
-            ];
+            if(isset($settings["filter_type"])) {
+                $config["type"] = $settings["filter_type"];
+            }
 
-            $this->register_filters($grid_type, $config);
+            if(isset($settings["name"])) {
+                $config["name"] = $settings["name"];
+            }
+
+            if(!isset($settings["slug"]) || empty($settings["slug"])) {
+                return null;
+            }
+
+            if(isset($settings["placeholder"]) && $config["type"] === "text") {
+                $config["placeholder"] = $settings["placeholder"];
+            }
+
+            $config["matches"] = function ($atts, $details) {
+                return match_contains($atts["query"], $details["post_title"]);
+            };
+            
+            $filter_slug = $settings["slug"];
+            $filter_data = [];
+            $filter_data[$filter_slug] = $config;
+            $this->register_filters($grid_type, $filter_data);
 			$this->trigger_init($grid_type);
 
             if($include_cache) {
-                $this->set_cache($grid_type, $settings);
+                $this->set_cache($grid_type, ["temp_filters" => $settings]);
             }
 
-            return '[' . $grid_type . '-filters]';
+            return '[' . $grid_type . '-filters-' . $filter_slug . ']';
         }
     }
-
+    
+    /**
+     * render_from_template
+     *
+     * @param  mixed $template
+     * @param  mixed $details
+     * @return void
+     */
     function render_from_template($template, $details)
     {
         $m = new Mustache_Engine(array('entity_flags' => ENT_QUOTES));
@@ -259,7 +292,7 @@ class AJF_Instance
      */
     function cache_key($grid_type)
     {
-        return 'ajf-cache' . $grid_type;
+        return 'ajf-cache-' . $grid_type;
     }
     
     /**
@@ -273,7 +306,7 @@ class AJF_Instance
     {
         $cache = get_transient($this->cache_key($grid_type));
         if($cache) {
-            $settings = array_merge((array) json_decode($cache), $settings);
+            $settings = array_merge((array) json_decode($cache), (array) $settings);
         }
         $encoded = json_encode($settings);
         set_transient($this->cache_key($grid_type), $encoded);
@@ -308,10 +341,29 @@ class AJF_Instance
     {
         $params = $request->get_params();
         if(isset($params["post_type"]) && !empty($params["post_type"])){
-            $grid_type = $params["post_type"];
-            $settings = $this->get_cache($grid_type);
-            if($settings) {
-                $this->register_grid_widget($settings);
+            $this->register_from_cache($params["post_type"]);
+        }
+    }
+    
+    /**
+     * register_from_cache
+     *
+     * @param  mixed $grid_type
+     * @return void
+     */
+    function register_from_cache($grid_type)
+    {
+        $settings = $this->get_cache($grid_type);
+        if($settings) {
+            $temp_filters = null;
+            if(isset($settings["temp_filters"])) {
+                $temp_filters = $settings["temp_filters"];
+                unset($settings["temp_filters"]);
+            }
+            $this->register_grid_widget($settings);
+
+            if($temp_filters) {
+                $this->register_filters_widget((array) $temp_filters);
             }
         }
     }
@@ -503,8 +555,14 @@ class AJF_Instance
         if (!isset($this->grids[$grid_type])) {
             $this->grids[$grid_type] = [];
         }
-    
-        $this->grids[$grid_type]["temp_filters"] = $filters;
+
+        if(!isset($this->grids[$grid_type]["temp_filters"])) {
+            $this->grids[$grid_type]["temp_filters"] = [];
+        }
+
+        foreach ($filters as $filter_key => $filter_data) {
+            $this->grids[$grid_type]["temp_filters"][$filter_key] = $filter_data;
+        }
     }
 
     /**
@@ -519,8 +577,14 @@ class AJF_Instance
         if (!isset($this->templates[$grid_type])) {
             $this->templates[$grid_type] = [];
         }
-    
-        $this->templates[$grid_type]["temp_filters"] = $filters;
+
+        if(!isset($this->templates[$grid_type]["temp_filters"])) {
+            $this->templates[$grid_type]["temp_filters"] = [];
+        }
+
+        foreach ($filters as $filter_key => $filter_data) {
+            $this->templates[$grid_type]["temp_filters"][$filter_key] = $filter_data;
+        }
     }
 
     /**
