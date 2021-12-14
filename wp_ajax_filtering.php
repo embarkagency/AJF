@@ -95,16 +95,16 @@ class AJF_Instance
      */
     function register_grid_widget($settings, $include_cache=false)
     {
-        if(isset($settings['source']) && !empty($settings['source'])){
+        if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
-			$grid_type = sanitize_title($source . '-elementor');
+			$grid_type = sanitize_title($settings['source'] . '-elementor');
             
 
             if(isset($settings['unique_id']) && !empty($settings['unique_id'])){
                 $grid_type .= '-' . sanitize_title($settings['unique_id']);
             }
 
-			$config = ['data' => $source];
+			$config = ['data' => $settings['source']];
 			
 			if(isset($settings['count']) && !empty($settings['count'])){
 				$config['count'] = $settings['count'];
@@ -168,6 +168,10 @@ class AJF_Instance
 
             // $config["cache"] = false;
             $config["is_widget"] = true;
+            $config["theme_atts"] = [
+                "data-widget-source" => $settings["source"],
+            ];
+            $config["extra_styles"] = '';
 
 			$this->register_grid($grid_type, $config);
 			$this->trigger_init($grid_type);
@@ -181,7 +185,28 @@ class AJF_Instance
     }
 
     function register_filters_widget($settings, $include_cache = false) {
-        
+        if(isset($settings['source']) && !empty($settings['source'])) {
+			$source = $settings['source'];
+			$grid_type = sanitize_title($settings['source'] . '-elementor');
+            
+
+            if(isset($settings['unique_id']) && !empty($settings['unique_id'])){
+                $grid_type .= '-' . sanitize_title($settings['unique_id']);
+            }
+
+			$config = [
+
+            ];
+
+            $this->register_filters($grid_type, $config);
+			$this->trigger_init($grid_type);
+
+            if($include_cache) {
+                $this->set_cache($grid_type, $settings);
+            }
+
+            return '[' . $grid_type . '-filters]';
+        }
     }
 
     function render_from_template($template, $details)
@@ -248,7 +273,7 @@ class AJF_Instance
     {
         $cache = get_transient($this->cache_key($grid_type));
         if($cache) {
-            delete_transient($this->cache_key($grid_type));
+            $settings = array_merge((array) json_decode($cache), $settings);
         }
         $encoded = json_encode($settings);
         set_transient($this->cache_key($grid_type), $encoded);
@@ -925,7 +950,7 @@ class AJF_Instance
                 $wrapper = isset($grid_data["wrapper"]) ? $grid_data["wrapper"] : "div";
                 $wrapper_end = strtok($wrapper, " ");
 
-                $html_attributes = [
+                $grid_attributes = [
                     "class" => "archive-container",
                     "data-post-type" => $grid_type,
                     "data-post-count" => $atts["count"],
@@ -933,23 +958,47 @@ class AJF_Instance
                     "data-no-cache" => (isset($grid_data["cache"]) && $grid_data["cache"] === false ? "true" : "false"),
                 ];
 
+                $pagination_attributes = [
+                    "class" => "pagination-container",
+                    "data-post-type" => $grid_type,
+                ];
+
                 if(isset($grid_data["is_widget"]) && $grid_data["is_widget"] === true) {
-                    $html_attributes["data-is-widget"] = "true";
+                    $grid_attributes["data-is-widget"] = "true";
+                    $pagination_attributes["data-is-widget"] = "true";
+
+                    if(isset($grid_data["theme_atts"])) {
+                        $grid_attributes = array_merge($grid_attributes, $grid_data["theme_atts"]);
+                        $pagination_attributes = array_merge($pagination_attributes, $grid_data["theme_atts"]);
+                    }
+
+                    if(isset($grid_data["extra_styles"])) {
+                        $output .= '<style>' . $grid_data["extra_styles"] . '</style>';
+                    }
                 }
 
-                $output .= '<' . $wrapper . ' ' . $this->html_attributes($html_attributes) . '>';
+                $output .= '<' . $wrapper . ' ' . $this->html_attributes($grid_attributes) . '>';
                 $output .= $render["html"];
                 $output .= '</' . $wrapper_end . '>';
             }
 
             if ((filter_var($atts["pagination"], FILTER_VALIDATE_BOOLEAN) !== false || isset($atts["pagination"]) && $atts["pagination"] === "only") && isset($render["pagination"])) {
-                $output .= '<div class="pagination-container" data-post-type="' . $grid_type . '">';
+                $output .= '<div ' . $this->html_attributes($pagination_attributes) . '>';
                 $output .= $render["pagination"];
                 $output .= '</div>';
             }
 
             return $output;
         });
+    }
+
+    function get_post_sources()
+    {
+		$post_types = get_post_types([], 'objects');
+		array_walk($post_types, function(&$a, $b) {
+			$a = $a->label;
+		});
+        return $post_types;
     }
 
     function html_attributes($attributes)

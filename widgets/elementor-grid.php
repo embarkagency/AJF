@@ -15,10 +15,15 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 	public function __construct($data = [], $args = null) {
 		parent::__construct($data, $args);
 		wp_register_script( 'ajf-elementor-js', plugins_url('../js/ajf-elementor.js', __FILE__), [ 'elementor-frontend' ], '1.0.0', true );
+		wp_register_style( 'ajf-elementor-grid-css', plugins_url( '../css/ajf-widget-grid.css', __FILE__ ) );
 	}
   
 	public function get_script_depends() {
 		return [ 'ajf-elementor-js' ];
+	}
+
+	public function get_style_depends() {
+		return [ 'ajf-elementor-grid-css' ];
 	}
 
 	/**
@@ -92,12 +97,12 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'label' => __( 'Configuration', self::$slug ),
 			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
-
+		
 		$this->add_control('source', [
 			'label' => __( 'Source', self::$slug ),
 			'type' => \Elementor\Controls_Manager::SELECT,
 			'default' => 'post',
-			'options' => get_post_types([], 'names'),
+			'options' => $AJF->get_post_sources(),
 		]);
 
 		$this->add_control('unique_id', [
@@ -105,7 +110,7 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'type' => \Elementor\Controls_Manager::TEXT,
 			'default' => __( '', self::$slug ),
 			'placeholder' => __( '', self::$slug ),
-			'description' => 'Set a unique ID if you have multiple grids on the same page to avoid conflicts otherwise can be left blank.',
+			'description' => 'Set a unique ID if you have multiple grids to avoid conflicts otherwise can be left blank. If you have AJF Filters that should control this grid, make sure you use the same ID.',
 		]);
 
 		$this->add_control('count', [
@@ -153,9 +158,11 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 		]);
 
 		$default_render = '<div class="archive-item post">
-	<img src="{{thumbnail}}" />
-	<h4>{{post_title}}</h4>
-	<a href="{{permalink}}">View Post</a>
+	<div class="thumbnail" style="background-image: url({{thumbnail}});"></div>
+	<div class="details">
+		<h4>{{post_title}}</h4>
+		<a href="{{permalink}}">View Post</a>
+	</div>
 </div>';
 		$this->add_control('render_template', [
 			'label' => __( 'Render Template (with Mustache)', self::$slug ),

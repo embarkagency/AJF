@@ -1,0 +1,73 @@
+.archive-container[data-is-widget="true"] {
+    transition: 0.3s;
+}
+
+.archive-container[data-is-widget="true"].loading {
+    opacity: 0.3;
+}
+
+.archive-container[data-is-widget="true"][data-widget-source="post"] > div {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-gap: 30px;
+}
+
+.archive-container[data-is-widget="true"][data-widget-source="post"] > * > * {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    height: 100%;
+    width: 100%;
+}
+
+.archive-container[data-is-widget="true"][data-widget-source="post"] > * > * {
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+
+.archive-container[data-is-widget="true"][data-widget-source="post"] > * > *:hover {
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+}
+
+.archive-container[data-is-widget="true"][data-widget-source="post"] > * > * > .thumbnail {
+    width: 100%;
+    height: 300px;
+    background-size: cover;
+    background-position: center center;
+    border-radius: 10px 10px 0 0;
+}
+
+.archive-container[data-is-widget="true"][data-widget-source="post"] > * > * > .details {
+    border-radius: 0 0 10px 10px;
+    padding: 15px;
+    width: 100%;
+    text-align: center;
+    background: #FFF;
+}
+
+.pagination-container[data-is-widget="true"] {
+    padding: 30px 0;
+}
+
+.pagination-container[data-is-widget="true"] .pagination-grid {
+    width: 100%;
+    background: #FFF;
+    display: flex;
+    justify-content: space-between;
+}
+
+.pagination-container[data-is-widget="true"] .pagination-grid .pagination-num {
+    text-align: center;
+    padding: 5px 20px;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    background: #FFF;
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+
+.pagination-container[data-is-widget="true"] .pagination-grid .pagination-num.active {
+    background: var(--e-global-color-primary);
+    color: #FFF;
+}

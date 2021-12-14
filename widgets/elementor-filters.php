@@ -15,11 +15,17 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 	public function __construct($data = [], $args = null) {
 		parent::__construct($data, $args);
 		wp_register_script( 'ajf-elementor-js', plugins_url('../js/ajf-elementor.js', __FILE__), [ 'elementor-frontend' ], '1.0.0', true );
+		wp_register_style( 'ajf-elementor-filters-css', plugins_url( '../css/ajf-widget-filters.css', __FILE__ ) );
 	}
   
 	public function get_script_depends() {
 		return [ 'ajf-elementor-js' ];
 	}
+
+	public function get_style_depends() {
+		return [ 'ajf-elementor-filters-css' ];
+	}
+
 
 	/**
 	 * Get widget name.
@@ -92,12 +98,20 @@ class Elementor_AJF_Filters_Widget extends \Elementor\Widget_Base {
 			'label' => __( 'Configuration', self::$slug ),
 			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
-
-		$this->add_control('grid_type', [
-			'label' => __( 'Select Grid', self::$slug ),
+		
+		$this->add_control('source', [
+			'label' => __( 'Source', self::$slug ),
 			'type' => \Elementor\Controls_Manager::SELECT,
-			'options' => $AJF->get_grids(),
-			'default' => $AJF->get_first_grid_type(),
+			'default' => 'post',
+			'options' => $AJF->get_post_sources(),
+		]);
+
+		$this->add_control('unique_id', [
+			'label' => __( 'Unique ID', self::$slug ),
+			'type' => \Elementor\Controls_Manager::TEXT,
+			'default' => __( '', self::$slug ),
+			'placeholder' => __( '', self::$slug ),
+			'description' => 'This should be the same as the ID of the AJF Grid these filters should control.',
 		]);
 
 		$this->end_controls_section();
