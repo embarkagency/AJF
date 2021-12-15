@@ -1,7 +1,7 @@
 class AJF_class {
 	constructor($) {
-		
 		window.$ = $;
+
 		this.destroy();
 
 		this.on('render', ({ post_type, html }) => {
@@ -57,6 +57,11 @@ class AJF_class {
 		this.bindFilterChange = function() {
 			const data = $this.setFilterValue(this);
 			const post_type = $(this).attr("data-post-type");
+
+			if(!$this.post_types[post_type]) {
+				return;
+			}
+
 			data.post_type = post_type;
 			data.src = "bind";
 			if($(this).attr("data-skip-load")) {
@@ -127,6 +132,11 @@ class AJF_class {
 
 	setFilterValue(el, shouldReset=true) {
 		const post_type = $(el).attr("data-post-type");
+		if(!this.post_types[post_type]) {
+			console.error("Post type not found");
+			return;
+		}
+
 		this.post_types[post_type].post_count = this.post_types[post_type].default_post_count;
 
 		if(shouldReset) {
@@ -466,6 +476,8 @@ class AJF_class {
 	}
 }
 
-jQuery(document).ready(function($){	
-	window.AJF = new AJF_class($);
+
+
+jQuery(document).ready(function() {
+	window.AJF = new AJF_class(jQuery);
 });

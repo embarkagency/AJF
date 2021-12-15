@@ -75,7 +75,8 @@ class AJF_Instance
             require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-grid.php');
 
             require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-filter-text.php');
-            // require_once('widgets/elementor-filter-select.php');
+            require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-filter-select.php');
+
             // require_once('widgets/elementor-filter-checkbox.php');
             // require_once('widgets/elementor-filter-clear.php');
 
@@ -83,7 +84,7 @@ class AJF_Instance
                 new Elementor_AJF_Grid_Widget(),
 
                 new Elementor_AJF_Filter_Text_Widget(),
-                // new Elementor_AJF_Filter_Select_Widget(),
+                new Elementor_AJF_Filter_Select_Widget(),
                 // new Elementor_AJF_Filter_Checkbox_Widget(),
                 // new Elementor_AJF_Filter_Clear_Widget(),
             ];
@@ -217,6 +218,10 @@ class AJF_Instance
                 $config["name"] = $settings["name"];
             }
 
+            if($settings["filter_type"] === "select") {
+                $config["options"] = [];
+            }
+
             if(!isset($settings["slug"]) || empty($settings["slug"])) {
                 return null;
             }
@@ -257,27 +262,24 @@ class AJF_Instance
     }
     
     /**
-     * get_variables_as_string
+     * get_dot_notation
      *
-     * @param  mixed $array
-     * @param  mixed $prev_key
+     * @param  mixed $arr
      * @return void
      */
-    function get_variables_as_string($array, $prev_key='')
+    function get_dot_notation($arr)
     {
-        $variables = [];
-        foreach($array as $key => $value){
-            if(is_array($value)){
-                $variables = array_merge($variables, $this->get_variables_as_string($value, $key));
-            } else {
-                if($prev_key != ''){
-                    $variables[] = $prev_key . '.' . $key;
-                } else {
-                    $variables[] = $key;
-                }
+        $ritit = new RecursiveIteratorIterator(new RecursiveArrayIterator($arr));
+        $result = array();
+        foreach ($ritit as $leafValue) {
+            $keys = array();
+            foreach (range(0, $ritit->getDepth()) as $depth) {
+                $keys[] = $ritit->getSubIterator($depth)->key();
             }
+            $result[ join('.', $keys) ] = $leafValue;
         }
-        return $variables;
+
+        return $result;
     }
     
     /**
@@ -288,8 +290,15 @@ class AJF_Instance
      */
     function debug_mode_variables($details)
     {
-        $variables = $this->get_variables_as_string($details);
-        return '<pre>' . var_export($details, true) . '</pre>';
+        $output = '<div>';
+            $variables = $this->get_dot_notation((array) $details);
+            foreach($variables as $variable_name => $variable) {
+                $output .= '<div class="debug-variable">';
+                    $output .= '<span class="debug-variable-name">{{' . $variable_name . '}}</span>';
+                $output .= '</div>';
+            }
+        $output .= '</div>';
+        return $output;
     }
     
     /**
@@ -440,7 +449,7 @@ class AJF_Instance
                 if (isset($grid_data["data"])) {
                     $data = $grid_data["data"];
                     if (is_callable($data)) {
-                        $source = get_source_data([
+                        $source = $this->get_source_data([
                             "post_type" => $post_type,
                             "count" => isset($grid_data["count"]) ? $grid_data["count"] : 0,
                             "pge" => 1,
@@ -605,11 +614,14 @@ class AJF_Instance
     function get_filter_options($filters, $details)
     {
         foreach ($filters as $filter_key => $filter_data) {
+
             if (isset($details[$filter_key])) {
+
                 $filters[$filter_key] = (object) $filters[$filter_key];
                 if ($filters[$filter_key]->type === "select") {
+
                     if (!isset($filters[$filter_key]->options)) {
-                        $filter[$filter_key]->options = [];
+                        $filters[$filter_key]->options = [];
                     }
     
                     if (isset($details[$filter_key])) {
@@ -619,7 +631,6 @@ class AJF_Instance
                             $filters[$filter_key]->options[] = $details[$filter_key];
                         }
                     }
-    
                 }
             }
         }

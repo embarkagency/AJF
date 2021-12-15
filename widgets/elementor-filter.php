@@ -38,7 +38,7 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 	 * @return string Widget name.
 	 */
 	public function get_name() {
-		return self::$slug;
+		return self::$slug . '-' . $this->filter_type;
 	}
 
 	/**
@@ -52,7 +52,7 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 	 * @return string Widget title.
 	 */
 	public function get_title() {
-		return __( 'AJF Filters', self::$slug );
+		return __( 'AJF ' . ucwords($this->filter_type) . ' Filter', self::$slug );
 	}
 
 	/**
