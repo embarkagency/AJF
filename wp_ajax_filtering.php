@@ -13,8 +13,6 @@ if (!defined('ABSPATH')) {
     exit; // Exit if accessed directly
 }
 
-use Elementor\Plugin;
-
 require plugin_dir_path( __FILE__ ) . '/Mustache/Autoloader.php';
 Mustache_Autoloader::register();
 
@@ -74,16 +72,26 @@ class AJF_Instance
     function init_elementor_widgets()
     {
         add_action( 'elementor/widgets/widgets_registered', function() {
-            require_once('widgets/elementor-grid.php');
-            require_once('widgets/elementor-filters.php');
-        
-            $grid_widget =	new Elementor_AJF_Grid_Widget();
-            $filters_widget =	new Elementor_AJF_Filters_Widget();
-        
-            // Let Elementor know about our widget
-            Plugin::instance()->widgets_manager->register_widget_type( $grid_widget );
-            Plugin::instance()->widgets_manager->register_widget_type( $filters_widget );
-        }, 1000); 
+            require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-grid.php');
+
+            require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-filter-text.php');
+            // require_once('widgets/elementor-filter-select.php');
+            // require_once('widgets/elementor-filter-checkbox.php');
+            // require_once('widgets/elementor-filter-clear.php');
+
+            $widgets = [
+                new Elementor_AJF_Grid_Widget(),
+
+                new Elementor_AJF_Filter_Text_Widget(),
+                // new Elementor_AJF_Filter_Select_Widget(),
+                // new Elementor_AJF_Filter_Checkbox_Widget(),
+                // new Elementor_AJF_Filter_Clear_Widget(),
+            ];
+
+            foreach($widgets as $widget) {
+                \Elementor\Plugin::instance()->widgets_manager->register_widget_type( $widget );
+            }
+        }, 1000);
     }
     
     /**
