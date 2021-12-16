@@ -76,17 +76,15 @@ class AJF_Instance
 
             require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-filter-text.php');
             require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-filter-select.php');
-
-            // require_once('widgets/elementor-filter-checkbox.php');
-            // require_once('widgets/elementor-filter-clear.php');
+            require_once(plugin_dir_path( __FILE__ ) . 'widgets/elementor-filter-clear.php');
 
             $widgets = [
                 new Elementor_AJF_Grid_Widget(),
 
                 new Elementor_AJF_Filter_Text_Widget(),
                 new Elementor_AJF_Filter_Select_Widget(),
-                // new Elementor_AJF_Filter_Checkbox_Widget(),
                 // new Elementor_AJF_Filter_Clear_Widget(),
+                // new Elementor_AJF_Filter_Checkbox_Widget(),
             ];
 
             foreach($widgets as $widget) {
@@ -175,8 +173,9 @@ class AJF_Instance
             }
 
             $config["is_widget"] = true;
-            $config["theme_atts"] = [
+            $config["extra_atts"] = [
                 "data-widget-source" => $settings["source"],
+                "data-settings" => htmlentities(json_encode($settings)),
             ];
             $config["extra_styles"] = '';
 
@@ -233,10 +232,21 @@ class AJF_Instance
             $config["matches"] = function ($atts, $details) {
                 return match_contains($atts["query"], $details["post_title"]);
             };
+
+            $config["extra_atts"] = [
+                "data-settings" => htmlentities(json_encode($settings)),
+            ];
             
             $filter_slug = $settings["slug"];
             $filter_data = [];
             $filter_data[$filter_slug] = $config;
+
+            $grid_cache = $this->get_cache($grid_type);
+            if($grid_cache) {
+                $this->register_grid_widget($grid_cache);
+            }
+
+
             $this->register_filters($grid_type, $filter_data);
 			$this->trigger_init($grid_type);
 
@@ -477,17 +487,18 @@ class AJF_Instance
                 while ($loop->have_posts()): $loop->the_post();
                     $id = get_the_ID();
                     $details = $this->get_post_details($id, $grid_data);
-                    $filters = $this->get_filter_options($filters, $details);
+                    $filters = $this->get_filter_options($filters, (array) $details);
                 endwhile;
                 wp_reset_postdata();
             }
         
             foreach ($filters as $filter_key => $filter_data) {
                 if ($filter_data->type === "select") {
-                    $filter_data->options = array_unique($filter_data->options);
+                    $filters[$filter_key]->options = array_unique($filter_data->options);
                     sort($filter_data->options);
-                }
+                };
             }
+
 
             return $filters;
         }
@@ -615,21 +626,23 @@ class AJF_Instance
     {
         foreach ($filters as $filter_key => $filter_data) {
 
-            if (isset($details[$filter_key])) {
+            $filters[$filter_key] = (object) $filters[$filter_key];
+            
+            if($filters[$filter_key]->type === "select" && $filter_key === "count") {
+                $filters[$filter_key]->options = [10, 20, 50, 100, 200];
+            }
 
-                $filters[$filter_key] = (object) $filters[$filter_key];
+            if (isset($details[$filter_key])) {
                 if ($filters[$filter_key]->type === "select") {
 
                     if (!isset($filters[$filter_key]->options)) {
                         $filters[$filter_key]->options = [];
                     }
     
-                    if (isset($details[$filter_key])) {
-                        if (is_array($details[$filter_key])) {
-                            $filters[$filter_key]->options = array_merge($filters[$filter_key]->options, $details[$filter_key]);
-                        } else {
-                            $filters[$filter_key]->options[] = $details[$filter_key];
-                        }
+                    if (is_array($details[$filter_key])) {
+                        $filters[$filter_key]->options = array_merge($filters[$filter_key]->options, $details[$filter_key]);
+                    } else {
+                        $filters[$filter_key]->options[] = $details[$filter_key];
                     }
                 }
             }
@@ -659,9 +672,13 @@ class AJF_Instance
             if (isset($filter->name) && $filter->type !== "clear") {
                 $output .= '<label for="' . $grid_type . '-filter-' . $filter_key . '">' . $filter->name . '</label>';
             }
-    
+
             $default_props = ' id="' . $grid_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $grid_type . '" data-input-type="' . $filter->type . '"';
     
+            if(isset($filter->extra_atts)) {
+                $default_props .= ' ' . $this->html_attributes($filter->extra_atts);
+            }
+
             $single_get_value = isset($_GET[$filter_key]) ? $_GET[$filter_key] : null;
             $multi_get_value = isset($_GET[$grid_type . '__' . $filter_key]) ? $_GET[$grid_type . '__' . $filter_key] : null;
     
@@ -692,7 +709,9 @@ class AJF_Instance
                 }
                 $output .= '<select' . $default_props . '>';
                 if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
-                    $output .= '<option value="">Any</option>';
+                    if($filter_key !== "count") {
+                        $output .= '<option value="">Any</option>';
+                    }
                 }
     
                 foreach ($filter->options as $option) {
@@ -1050,9 +1069,9 @@ class AJF_Instance
                     $grid_attributes["data-is-widget"] = "true";
                     $pagination_attributes["data-is-widget"] = "true";
 
-                    if(isset($grid_data["theme_atts"])) {
-                        $grid_attributes = array_merge($grid_attributes, $grid_data["theme_atts"]);
-                        $pagination_attributes = array_merge($pagination_attributes, $grid_data["theme_atts"]);
+                    if(isset($grid_data["extra_atts"])) {
+                        $grid_attributes = array_merge($grid_attributes, $grid_data["extra_atts"]);
+                        $pagination_attributes = array_merge($pagination_attributes, $grid_data["extra_atts"]);
                     }
 
                     if(isset($grid_data["extra_styles"])) {

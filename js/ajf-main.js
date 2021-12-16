@@ -264,7 +264,9 @@ class AJF_class {
 				if(type === "checkbox") {
 					$(this).prop("checked", false);
 				} else {
-					$(this).val("");
+					if($(this).data("type") !== "count") {
+						$(this).val("");
+					}
 				}
 
 				$(this).trigger("change");

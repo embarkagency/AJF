@@ -93,8 +93,8 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 	protected function register_controls() {
         global $AJF;
 
-		$this->start_controls_section('config_section', [
-			'label' => __( 'Configuration', self::$slug ),
+		$this->start_controls_section('source_section', [
+			'label' => __( 'Data Source', self::$slug ),
 			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
 		
@@ -111,6 +111,13 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 			'default' => __( '', self::$slug ),
 			'placeholder' => __( '', self::$slug ),
 			'description' => 'Set a unique ID if you have multiple grids to avoid conflicts otherwise can be left blank. If you have AJF Filters that should control this grid, make sure you use the same ID.',
+		]);
+
+		$this->end_controls_section();
+
+		$this->start_controls_section('config_section', [
+			'label' => __( 'Configuration', self::$slug ),
+			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
 
 		$this->add_control('count', [
@@ -198,7 +205,17 @@ class Elementor_AJF_Grid_Widget extends \Elementor\Widget_Base {
 	protected function render() {
         global $AJF;
 
-		$settings = $this->get_settings_for_display();
+		$settings = [
+			"source" => $this->get_settings("source"),
+			"unique_id" => $this->get_settings("unique_id"),
+			"count" => $this->get_settings("count"),
+			"pagination" => $this->get_settings("pagination"),
+			"has_nav" => $this->get_settings("has_nav"),
+			"order_by" => $this->get_settings("order_by"),
+			"render_template" => $this->get_settings("render_template"),
+			"debug_mode" => $this->get_settings("debug_mode"),
+		];
+
 		$shortcode = $AJF->register_grid_widget($settings, true);
 
 		if($shortcode) {

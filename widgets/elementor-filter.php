@@ -94,8 +94,8 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 	protected function register_controls() {
         global $AJF;
 
-		$this->start_controls_section('config_section', [
-			'label' => __( 'Configuration', self::$slug ),
+		$this->start_controls_section('source_section', [
+			'label' => __( 'Data Source', self::$slug ),
 			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
 		]);
 		
@@ -114,6 +114,13 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 			'description' => 'This should be the same as the ID of the AJF Grid these filters should control.',
 		]);
 
+		$this->end_controls_section();
+
+		$this->start_controls_section('config_section', [
+			'label' => __( 'Configuration', self::$slug ),
+			'tab' => \Elementor\Controls_Manager::TAB_CONTENT,
+		]);
+
 		$this->add_control('filter_type', [
 			'label' => __( 'Filter Type', self::$slug ),
 			'type' => \Elementor\Controls_Manager::HIDDEN,
@@ -127,16 +134,28 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 			'placeholder' => __( $this->default_label, self::$slug ),
 		]);
 
-		$this->add_control('slug', [
-			'label' => __( 'Slug', self::$slug ),
-			'type' => \Elementor\Controls_Manager::TEXT,
-			'default' => __( $this->default_slug, self::$slug ),
-			'placeholder' => __( $this->default_slug, self::$slug ),
-			'description' => 'Unique slug for filters, primary used for the URL.',
-		]);
+		if($this->hide_slug) {
+			$this->add_control('slug', [
+				'label' => __( 'Slug', self::$slug ),
+				'type' => \Elementor\Controls_Manager::HIDDEN,
+				'default' => __( $this->default_slug, self::$slug ),
+			]);
+		} else {
+			$this->add_control('slug', [
+				'label' => __( 'Slug', self::$slug ),
+				'type' => \Elementor\Controls_Manager::TEXT,
+				'default' => __( $this->default_slug, self::$slug ),
+				'placeholder' => __( $this->default_slug, self::$slug ),
+				'description' => 'Unique slug for filters, primary used for the URL.',
+			]);
+		}
 
 		$this->add_filter_controls();
 		$this->end_controls_section();
+	}
+
+	public function get_filter_settings() {
+		return [];
 	}
 
 	/**
@@ -150,7 +169,14 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 	protected function render() {
         global $AJF;
 
-		$settings = $this->get_settings_for_display();
+		$settings = array_merge([
+			"source" => $this->get_settings("source"),
+			"unique_id" => $this->get_settings("unique_id"),
+			"filter_type" => $this->get_settings("filter_type"),
+			"name" => $this->get_settings("name"),
+			"slug" => $this->get_settings("slug"),
+		], $this->get_filter_settings());
+
 		$shortcode = $AJF->register_filters_widget($settings, true);
 
 		if($shortcode) {

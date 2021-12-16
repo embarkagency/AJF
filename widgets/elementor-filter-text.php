@@ -6,8 +6,8 @@ class Elementor_AJF_Filter_Text_Widget extends Elementor_AJF_Filter_Widget {
 
 	public function __construct($data = [], $args = null) {
 
-		$this->default_label = 'Search';
 		$this->filter_type = 'text';
+		$this->default_label = 'Search';
 		$this->default_slug = 'query';
 
 		parent::__construct($data, $args);
@@ -20,5 +20,11 @@ class Elementor_AJF_Filter_Text_Widget extends Elementor_AJF_Filter_Widget {
 			'default' => __( 'Enter keywords here...', self::$slug ),
 			'placeholder' => __( 'Enter keywords here...', self::$slug ),
 		]);
+	}
+
+	public function get_filter_settings() {
+		return [
+			'placeholder' => $this->get_settings('placeholder')
+		];
 	}
 }
