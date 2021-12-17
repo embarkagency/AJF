@@ -36,8 +36,10 @@ class AJF_class {
 			// const no_cache = $(this).attr("data-no-cache") === "true" ? true : false;
 			const no_cache = elementorFrontend.isEditMode();
 			const is_widget = $(this).attr("data-is-widget") === "true" ? true : false;
-
+			const grid_settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			const default_page = $(this).attr("data-page") ? parseInt($(this).attr("data-page")) : 1;
+
+			console.log(grid_settings);
 
 			let post_count = default_post_count;
 
@@ -46,6 +48,7 @@ class AJF_class {
 				default_post_count,
 				post_count,
 				no_cache,
+				grid_settings,
 				page: default_page,
 			};
 		});
