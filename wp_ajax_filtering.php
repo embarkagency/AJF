@@ -47,11 +47,11 @@ class AJF_Instance
      */
     function init_actions()
     {
-        add_filter('rest_request_before_callbacks', [ $this, 'peak_cache' ], 1000, 3);
         add_action('wp_enqueue_scripts', [ $this, 'init_scripts' ], 1000);
         add_action('init', [ $this, 'init_shortcodes' ], 1000);
         add_action('rest_api_init', [ $this, 'init_rest_api' ], 1000);
         add_action('wp_footer', [ $this, 'init_footer_config' ], 1000);
+        add_action('init', [ $this, 'init_shortcodes' ], -1000);
     }
 
     /**
@@ -183,7 +183,7 @@ class AJF_Instance
 			$this->trigger_init($grid_type);
 
             if($include_cache) {
-                $this->set_cache($grid_type, $settings);
+                // $this->set_cache($grid_type, $settings);
             }
 
             return '[' . $grid_type . '-grid]';
@@ -241,17 +241,17 @@ class AJF_Instance
             $filter_data = [];
             $filter_data[$filter_slug] = $config;
 
-            $grid_cache = $this->get_cache($grid_type);
-            if($grid_cache) {
-                $this->register_grid_widget($grid_cache);
-            }
+            // $grid_cache = $this->get_cache($grid_type);
+            // if($grid_cache) {
+            //     $this->register_grid_widget($grid_cache);
+            // }
 
 
             $this->register_filters($grid_type, $filter_data);
 			$this->trigger_init($grid_type);
 
             if($include_cache) {
-                $this->set_cache($grid_type, ["temp_filters" => $settings]);
+                // $this->set_cache($grid_type, ["temp_filters" => $settings]);
             }
 
             return '[' . $grid_type . '-filters-' . $filter_slug . ']';

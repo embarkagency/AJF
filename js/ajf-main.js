@@ -154,6 +154,10 @@ class AJF_class {
 			value = $(el).is(":checked");
 		}
 
+		if(type === "select" && $(el).find("option").length < 1) {
+			return;
+		}
+
 		const data = {
 			type,
 			key,
