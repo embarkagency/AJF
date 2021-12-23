@@ -47,11 +47,11 @@ class AJF_Instance
      */
     function init_actions()
     {
+        add_filter('rest_request_before_callbacks', [ $this, 'peak_settings' ], 1000, 3);
         add_action('wp_enqueue_scripts', [ $this, 'init_scripts' ], 1000);
         add_action('init', [ $this, 'init_shortcodes' ], 1000);
         add_action('rest_api_init', [ $this, 'init_rest_api' ], 1000);
         add_action('wp_footer', [ $this, 'init_footer_config' ], 1000);
-        add_action('init', [ $this, 'init_shortcodes' ], -1000);
     }
 
     /**
@@ -369,6 +369,26 @@ class AJF_Instance
         $params = $request->get_params();
         if(isset($params["post_type"]) && !empty($params["post_type"])){
             $this->register_from_cache($params["post_type"]);
+        }
+    }
+
+    function peak_settings( $response, $handler, WP_REST_Request $request )
+    {
+        $params = $request->get_params();
+        
+        if(isset($params["_settings_"]) && !empty($params["_settings_"])){
+
+            $settings = $params["_settings_"];
+            $settings = (array) json_decode($settings);
+
+            $grid_settings = (array) $settings["grid"];
+            $filters = (array) $settings["filters"];
+
+            $this->register_grid_widget($grid_settings);
+            
+            foreach($filters as $filter) {
+                $this->register_filters_widget((array) $filter);
+            }
         }
     }
     

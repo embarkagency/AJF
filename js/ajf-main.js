@@ -39,8 +39,6 @@ class AJF_class {
 			const grid_settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			const default_page = $(this).attr("data-page") ? parseInt($(this).attr("data-page")) : 1;
 
-			console.log(grid_settings);
-
 			let post_count = default_post_count;
 
 			$this.post_types[post_type] = {
@@ -48,7 +46,10 @@ class AJF_class {
 				default_post_count,
 				post_count,
 				no_cache,
-				grid_settings,
+				settings: {
+					grid: grid_settings,
+					filters: {},
+				},
 				page: default_page,
 			};
 		});
@@ -118,6 +119,7 @@ class AJF_class {
 		$(document).on("click", ".filter-value[data-type='clear']", this.bindClear);
 		$(document).on("click", ".view-more-container .view-more-button", this.bindViewMore);
 		$(document).on("click", ".pagination-grid .pagination-num", this.bindPagination);
+		this.getFilterSettings();
 	}
 
 	unbindAllEvents() {
@@ -131,6 +133,16 @@ class AJF_class {
 		this.post_types = {};
 		this.event_listeners = {};
 		this.unbindAllEvents();
+	}
+
+	getFilterSettings() {
+		const $this = this;
+		$(".filter-value").each(function() {
+			const post_type = $(this).attr("data-post-type");
+			const name = $(this).attr("data-type");
+			const settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
+			$this.post_types[post_type].settings.filters[name] = settings;
+		})
 	}
 
 	setFilterValue(el, shouldReset=true) {
@@ -370,13 +382,16 @@ class AJF_class {
 				archive_url.searchParams.set(property, value);
 			}
 			this.replaceState(post_type, archive_url);
-			
+
 			archive_url.searchParams.set("post_type", post_type);
 			archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
 			if($this.post_types[post_type].no_cache) {
 				archive_url.searchParams.set('_cache_', Date.now());
 			}
 
+			if($this.post_types[post_type].settings) {
+				archive_url.searchParams.set('_settings_', JSON.stringify($this.post_types[post_type].settings));
+			}
 
 			const params = archive_url.searchParams;
 
@@ -389,7 +404,13 @@ class AJF_class {
 				},
 			});
 
-			fetch(archive_url.toString())
+			fetch(archive_url.toString(), {
+				method: "GET",
+				// headers: new Headers({
+				// 	'Content-Type': 'application/json;charset=UTF-8',
+				// }),
+				// body: JSON.stringify({"_settings_": $this.post_types[post_type].settings})
+			})
 			.then(r => r.json())
 			.then(r => {
 				$this.trigger("load", {
