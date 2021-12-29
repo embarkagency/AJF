@@ -39,8 +39,6 @@ class AJF_class {
 			const grid_settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			const default_page = $(this).attr("data-page") ? parseInt($(this).attr("data-page")) : 1;
 
-			console.log(grid_settings);
-
 			let post_count = default_post_count;
 
 			$this.post_types[post_type] = {
@@ -48,7 +46,10 @@ class AJF_class {
 				default_post_count,
 				post_count,
 				no_cache,
-				grid_settings,
+				settings: {
+					grid: grid_settings,
+					filters: {},
+				},
 				page: default_page,
 			};
 		});
@@ -109,6 +110,21 @@ class AJF_class {
 						post_type
 					}
 				});
+
+				if($this.post_types[post_type].is_widget) {
+					$this.tempUnbind();
+					$this.load(post_type, false).then(res => {
+						if(res.filters) {
+							for(const filter_type in res.filters) {
+								const filter = res.filters[filter_type];
+								if(filter.type === "select") {
+									$this.populateSelect(post_type, filter_type, filter.options);
+								}
+							}
+						}
+						$this.tempBind();
+					})
+				}
 			}
 		});
 	}
@@ -118,6 +134,7 @@ class AJF_class {
 		$(document).on("click", ".filter-value[data-type='clear']", this.bindClear);
 		$(document).on("click", ".view-more-container .view-more-button", this.bindViewMore);
 		$(document).on("click", ".pagination-grid .pagination-num", this.bindPagination);
+		this.getFilterSettings();
 	}
 
 	unbindAllEvents() {
@@ -131,6 +148,16 @@ class AJF_class {
 		this.post_types = {};
 		this.event_listeners = {};
 		this.unbindAllEvents();
+	}
+
+	getFilterSettings() {
+		const $this = this;
+		$(".filter-value").each(function() {
+			const post_type = $(this).attr("data-post-type");
+			const name = $(this).attr("data-type");
+			const settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
+			$this.post_types[post_type].settings.filters[name] = settings;
+		})
 	}
 
 	setFilterValue(el, shouldReset=true) {
@@ -154,6 +181,10 @@ class AJF_class {
 			value = $(el).is(":checked");
 		}
 
+		if(type === "select" && $(el).find("option").length < 1) {
+			return;
+		}
+
 		const data = {
 			type,
 			key,
@@ -172,6 +203,23 @@ class AJF_class {
 		}
 
 		this.post_types[post_type].values[data.key] = data;
+	}
+
+	populateSelect(post_type, filter_type, options) {
+		const filter = $(".filter-value[data-type='" + filter_type + "'][data-post-type='" + post_type + "']");
+		const cur_url = new URL(document.location);
+		const filter_param = cur_url.searchParams.get(filter_type);
+		filter.html("");
+		options.forEach(option => {
+			const $option = $("<option>");
+			if(filter_param === option.toString()) {
+				$option.attr("selected", "selected");
+			}
+			$option.attr("value", option);
+			$option.html(option);
+
+			filter.append($option);
+		})
 	}
 
 	getAll(post_type) {
@@ -366,13 +414,19 @@ class AJF_class {
 				archive_url.searchParams.set(property, value);
 			}
 			this.replaceState(post_type, archive_url);
-			
+
 			archive_url.searchParams.set("post_type", post_type);
 			archive_url.searchParams.set('count', $this.post_types[post_type].post_count);
 			if($this.post_types[post_type].no_cache) {
 				archive_url.searchParams.set('_cache_', Date.now());
 			}
 
+			if($this.post_types[post_type].settings) {
+				archive_url.searchParams.set('is_widget', true);
+				archive_url.searchParams.set('_settings_', JSON.stringify($this.post_types[post_type].settings));
+			} else {
+				archive_url.searchParams.set('is_widget', false);
+			}
 
 			const params = archive_url.searchParams;
 
@@ -385,7 +439,13 @@ class AJF_class {
 				},
 			});
 
-			fetch(archive_url.toString())
+			fetch(archive_url.toString(), {
+				method: "GET",
+				// headers: new Headers({
+				// 	'Content-Type': 'application/json;charset=UTF-8',
+				// }),
+				// body: JSON.stringify({"_settings_": $this.post_types[post_type].settings})
+			})
 			.then(r => r.json())
 			.then(r => {
 				$this.trigger("load", {
@@ -463,6 +523,17 @@ class AJF_class {
 		} else {
 			this.event_listeners[type].unshift(fn);
 		}
+	}
+
+	tempUnbind() {
+		const temp = this.event_listeners;
+		this.event_listeners = {};
+		this.temp_event_listeners = temp;
+	}
+
+	tempBind() {
+		this.event_listeners = this.temp_event_listeners;
+		this.temp_event_listeners = null;
 	}
 	
 	trigger(type, params={}) {

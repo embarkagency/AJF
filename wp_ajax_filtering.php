@@ -47,7 +47,7 @@ class AJF_Instance
      */
     function init_actions()
     {
-        add_filter('rest_request_before_callbacks', [ $this, 'peak_cache' ], 1000, 3);
+        add_filter('rest_request_before_callbacks', [ $this, 'peak_settings' ], 1000, 3);
         add_action('wp_enqueue_scripts', [ $this, 'init_scripts' ], 1000);
         add_action('init', [ $this, 'init_shortcodes' ], 1000);
         add_action('rest_api_init', [ $this, 'init_rest_api' ], 1000);
@@ -183,7 +183,7 @@ class AJF_Instance
 			$this->trigger_init($grid_type);
 
             if($include_cache) {
-                $this->set_cache($grid_type, $settings);
+                // $this->set_cache($grid_type, $settings);
             }
 
             return '[' . $grid_type . '-grid]';
@@ -241,17 +241,17 @@ class AJF_Instance
             $filter_data = [];
             $filter_data[$filter_slug] = $config;
 
-            $grid_cache = $this->get_cache($grid_type);
-            if($grid_cache) {
-                $this->register_grid_widget($grid_cache);
-            }
+            // $grid_cache = $this->get_cache($grid_type);
+            // if($grid_cache) {
+            //     $this->register_grid_widget($grid_cache);
+            // }
 
 
             $this->register_filters($grid_type, $filter_data);
 			$this->trigger_init($grid_type);
 
             if($include_cache) {
-                $this->set_cache($grid_type, ["temp_filters" => $settings]);
+                // $this->set_cache($grid_type, ["temp_filters" => $settings]);
             }
 
             return '[' . $grid_type . '-filters-' . $filter_slug . ']';
@@ -369,6 +369,26 @@ class AJF_Instance
         $params = $request->get_params();
         if(isset($params["post_type"]) && !empty($params["post_type"])){
             $this->register_from_cache($params["post_type"]);
+        }
+    }
+
+    function peak_settings( $response, $handler, WP_REST_Request $request )
+    {
+        $params = $request->get_params();
+        
+        if(isset($params["_settings_"]) && !empty($params["_settings_"])){
+
+            $settings = $params["_settings_"];
+            $settings = (array) json_decode($settings);
+
+            $grid_settings = (array) $settings["grid"];
+            $filters = (array) $settings["filters"];
+
+            $this->register_grid_widget($grid_settings);
+            
+            foreach($filters as $filter) {
+                $this->register_filters_widget((array) $filter);
+            }
         }
     }
     
@@ -498,7 +518,6 @@ class AJF_Instance
                     sort($filter_data->options);
                 };
             }
-
 
             return $filters;
         }
@@ -959,7 +978,7 @@ class AJF_Instance
         $footer = is_callable($footer) ? ($footer)($items) : $footer;
     
         $output .= $prepend;
-    
+
         if (count($items) > 0) {
             $output .= '<' . $as . ' class="' . $container_class . '">';
             $output .= $header;
@@ -1006,6 +1025,11 @@ class AJF_Instance
         }
     
         $response = ["html" => $output];
+
+
+        if($grid_data["filters"]) {
+            $response["filters"] = $grid_data["filters"];
+        }
     
         if ((isset($grid_data["include_items"]) && $grid_data["include_items"] === true) || $include_items === true) {
             $response["items"] = $items;
