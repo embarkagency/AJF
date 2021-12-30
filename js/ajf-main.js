@@ -29,7 +29,7 @@ class AJF_class {
 
 	init() {
 		const $this = this;
-
+		this.url_change = true;
 		$(".archive-container").each(function() {
 			const post_type = $(this).attr("data-post-type");
 			const default_post_count = parseInt($(this).attr("data-post-count"));
@@ -389,7 +389,9 @@ class AJF_class {
 			}
 		});
 
-		history.replaceState({}, '', archive_url.search);
+		if(this.url_change) {
+			history.replaceState({}, '', archive_url.search);
+		}
 	}
 
 	async load(post_type, render=true) {
@@ -526,12 +528,14 @@ class AJF_class {
 	}
 
 	tempUnbind() {
+		this.url_change = false;
 		const temp = this.event_listeners;
 		this.event_listeners = {};
 		this.temp_event_listeners = temp;
 	}
 
 	tempBind() {
+		this.url_change = true;
 		this.event_listeners = this.temp_event_listeners;
 		this.temp_event_listeners = null;
 	}

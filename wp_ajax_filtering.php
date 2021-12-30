@@ -97,10 +97,9 @@ class AJF_Instance
      * register_grid_widget
      *
      * @param  mixed $settings
-     * @param  mixed $include_cache
      * @return void
      */
-    function register_grid_widget($settings, $include_cache=false)
+    function register_grid_widget($settings)
     {
         if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
@@ -182,10 +181,6 @@ class AJF_Instance
 			$this->register_grid($grid_type, $config);
 			$this->trigger_init($grid_type);
 
-            if($include_cache) {
-                // $this->set_cache($grid_type, $settings);
-            }
-
             return '[' . $grid_type . '-grid]';
         }
     }
@@ -194,10 +189,9 @@ class AJF_Instance
      * register_filters_widget
      *
      * @param  mixed $settings
-     * @param  mixed $include_cache
      * @return void
      */
-    function register_filters_widget($settings, $include_cache = false)
+    function register_filters_widget($settings)
     {
         if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
@@ -241,18 +235,8 @@ class AJF_Instance
             $filter_data = [];
             $filter_data[$filter_slug] = $config;
 
-            // $grid_cache = $this->get_cache($grid_type);
-            // if($grid_cache) {
-            //     $this->register_grid_widget($grid_cache);
-            // }
-
-
             $this->register_filters($grid_type, $filter_data);
 			$this->trigger_init($grid_type);
-
-            if($include_cache) {
-                // $this->set_cache($grid_type, ["temp_filters" => $settings]);
-            }
 
             return '[' . $grid_type . '-filters-' . $filter_slug . ']';
         }
@@ -310,67 +294,6 @@ class AJF_Instance
         $output .= '</div>';
         return $output;
     }
-    
-    /**
-     * cache_key
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function cache_key($grid_type)
-    {
-        return 'ajf-cache-' . $grid_type;
-    }
-    
-    /**
-     * set_cache
-     *
-     * @param  mixed $grid_type
-     * @param  mixed $settings
-     * @return void
-     */
-    function set_cache($grid_type, $settings)
-    {
-        $cache = get_transient($this->cache_key($grid_type));
-        if($cache) {
-            $settings = array_merge((array) json_decode($cache), (array) $settings);
-        }
-        $encoded = json_encode($settings);
-        set_transient($this->cache_key($grid_type), $encoded);
-        return $settings;
-    }
-    
-    /**
-     * get_cache
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function get_cache($grid_type)
-    {
-        $settings = get_transient($this->cache_key($grid_type));
-        if ($settings === false) {
-            return false;
-        } else {
-            return (array) json_decode($settings);
-        }
-    }
-    
-    /**
-     * peak_cache
-     *
-     * @param  mixed $response
-     * @param  mixed $handler
-     * @param  mixed $request
-     * @return void
-     */
-    function peak_cache( $response, $handler, WP_REST_Request $request )
-    {
-        $params = $request->get_params();
-        if(isset($params["post_type"]) && !empty($params["post_type"])){
-            $this->register_from_cache($params["post_type"]);
-        }
-    }
 
     function peak_settings( $response, $handler, WP_REST_Request $request )
     {
@@ -388,29 +311,6 @@ class AJF_Instance
             
             foreach($filters as $filter) {
                 $this->register_filters_widget((array) $filter);
-            }
-        }
-    }
-    
-    /**
-     * register_from_cache
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function register_from_cache($grid_type)
-    {
-        $settings = $this->get_cache($grid_type);
-        if($settings) {
-            $temp_filters = null;
-            if(isset($settings["temp_filters"])) {
-                $temp_filters = $settings["temp_filters"];
-                unset($settings["temp_filters"]);
-            }
-            $this->register_grid_widget($settings);
-
-            if($temp_filters) {
-                $this->register_filters_widget((array) $temp_filters);
             }
         }
     }
