@@ -439,9 +439,28 @@ class AJF_Instance
             $details = (array) $details;
         } else {
             $default_fields = get_post($id, ARRAY_A);
+
+
+            $tax_types = get_object_taxonomies( array( 'page', 'post', $default_fields['post_type'] ), 'names' );
+
+            foreach($tax_types as $tax_type) {
+                $tax_html = '';
+
+                $terms = get_the_terms($id, $tax_type);
+                if(!empty($terms)) {
+                    foreach($terms as $term) {
+                        $tax_html .= '<span class="tag">' . $term->name . '</span>';
+                    }
+                }
+
+                $default_fields[$tax_type . '_list'] = $tax_html;
+            }
+
+        
+            $categories_html = var_export($categories_html, true);
             $extra_fields = [
                 'thumbnail' => get_the_post_thumbnail_url($id, 'full'),
-                'permalink' => get_the_permalink($id)
+                'permalink' => get_the_permalink($id),
             ];
             $acf_fields = get_fields($id);
             $acf_fields = isset($acf_fields) && !empty($acf_fields) ? $acf_fields : [];
@@ -888,6 +907,7 @@ class AJF_Instance
                     $details["index"] = $itemIndex;
 
                     if(is_string($grid_data["render"])) {
+
                         $output .= $this->render_from_template($grid_data["render"], $details);
                     } else {
                         $output .= ($grid_data["render"])($details, $atts);
