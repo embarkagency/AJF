@@ -415,7 +415,9 @@ class AJF_Instance
             foreach ($filters as $filter_key => $filter_data) {
                 if ($filter_data->type === "select") {
                     $filters[$filter_key]->options = array_unique($filter_data->options);
-                    sort($filter_data->options);
+                    if(isset($filter_data->sort) && $filter_data->sort !== false) {
+                        sort($filter_data->options);
+                    }
                 };
             }
 
@@ -602,7 +604,11 @@ class AJF_Instance
 
         $output = '';
     
-        $output .= '<div class="filter-option">';
+        if($filter->type === "hidden") {
+            $output .= '<div class="filter-option hidden">';
+        } else {
+            $output .= '<div class="filter-option">';
+        }
     
         if ($filter_key === "s" || $filter_key === "search") {
             $output .= '<div class="filter-option-error">`' . $filter_key . '` property is not allowed in filters. To fix please capitalize or change.</div>';
@@ -612,7 +618,15 @@ class AJF_Instance
             }
 
             $default_props = ' id="' . $grid_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $grid_type . '" data-input-type="' . $filter->type . '"';
-    
+
+            if (isset($filter->props)) {
+                $default_props .= ' ' . $filter->props;
+            }
+
+            if(isset($filter->autocomplete) && $filter->autocomplete !== true) {
+                $default_props .= ' autocomplete="off" data-lpignore="true" data-form-type="other"';
+            }
+
             if(isset($filter->extra_atts)) {
                 $default_props .= ' ' . $this->html_attributes($filter->extra_atts);
             }
@@ -624,7 +638,7 @@ class AJF_Instance
             $get_multi = explode("--", $get_value);
     
             $is_multi = count($get_multi) > 1;
-    
+
             if ($filter->type === "clear") {
                 $output .= '<div class="filter-text-wrapper clear-filter">';
                 $output .= '<a href="javascript: void(0);"' . $default_props . '>' . $filter->name . '</a>';
@@ -632,6 +646,10 @@ class AJF_Instance
             } else if ($filter->type === "text") {
                 $output .= '<div class="filter-text-wrapper">';
                 $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
+                $output .= '</div>';
+            } else if ($filter->type === "hidden") {
+                $output .= '<div class="filter-hidden-wrapper">';
+                $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="hidden"' . $default_props . ' hidden/>';
                 $output .= '</div>';
             } else if ($filter->type === "checkbox") {
                 $output .= '<div class="filter-text-wrapper">';
@@ -662,7 +680,7 @@ class AJF_Instance
                 $output .= '</select>';
     
                 $output .= '<div class="filter-chevron">';
-                $output .= '<i class="fal fa-chevron-down"></i>';
+                    $output .= '<i class="fal fa-chevron-down"></i>';
                 $output .= '</div>';
     
                 $output .= '</div>';
@@ -699,6 +717,18 @@ class AJF_Instance
                         unset($atts[$filter_key]);
                     }
                 }
+
+                if(isset($filter->calc)) {
+                    $atts[$filter_key] = ($filter->calc)($atts, $details);
+                }
+
+                if(isset($filter->before_match)) {
+                    $before_match_var = ($filter->before_match)($atts, $details);
+                    if(!empty($before_match_var)) {
+                        $details = $before_match_var;
+                    }
+                }
+
                 if (isset($filter->matches)) {
                     if (!($filter->matches)($atts, $details)) {
                         $matches = false;
