@@ -656,34 +656,64 @@ class AJF_Instance
                 $output .= '<input type="checkbox"' . $default_props . ' ' . (isset($get_value) && $get_value === "true" ? 'checked' : '') . '/>';
                 $output .= '</div>';
             } else if ($filter->type === "select") {
-                if (isset($filter->multi) && $filter->multi === true) {
-                    $default_props .= ' multiple';
+
+                $select_style = "select";
+                if(isset($filter->style)) {
+                    $select_style = $filter->style;
                 }
-                $output .= '<div class="filter-select-wrapper">';
-                if (isset($filter->icon)) {
-                    $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
-                }
-                $output .= '<select' . $default_props . '>';
-                if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
-                    if($filter_key !== "count") {
-                        $output .= '<option value="">Any</option>';
+
+                if($select_style === "select") {
+                    if (isset($filter->multi) && $filter->multi === true) {
+                        $default_props .= ' multiple';
                     }
-                }
-    
-                foreach ($filter->options as $option) {
-                    $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
-                    if ($is_multi) {
-                        $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                    $output .= '<div class="filter-select-wrapper">';
+                    if (isset($filter->icon)) {
+                        $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
                     }
-                    $output .= '<option value="' . $option . '" ' . $is_selected . '>' . $option . '</option>';
+                    $output .= '<select' . $default_props . '>';
+                    if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
+                        if($filter_key !== "count") {
+                            $output .= '<option value="">Any</option>';
+                        }
+                    }
+        
+                    foreach ($filter->options as $option) {
+                        $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
+                        if ($is_multi) {
+                            $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                        }
+                        $output .= '<option value="' . $option . '" ' . $is_selected . '>' . $option . '</option>';
+                    }
+                    $output .= '</select>';
+        
+                    $output .= '<div class="filter-chevron">';
+                        $output .= '<i class="fal fa-chevron-down"></i>';
+                    $output .= '</div>';
+        
+                    $output .= '</div>';
+                } else if($select_style === "buttons") {
+                    $output .= '<div class="filter-buttons-wrapper">';
+
+                    if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
+                        if($filter_key !== "count") {
+                            $output .= '<div class="filter-button-wrapper">';
+                                $output .= '<button class="filter-button">Any</button>';
+                            $output .= '</div>';
+                        }
+                    }
+
+                    foreach ($filter->options as $option) {
+                        $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
+                        if ($is_multi) {
+                            $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                        }
+                        $output .= '<div class="filter-button-wrapper">';
+                            $output .= '<button class="filter-button" data-value="' . $option . '" ' . $is_selected . '>' . $option . '</button>';
+                        $output .= '</div>';
+                    }
+                    $output .= '</div>';
                 }
-                $output .= '</select>';
-    
-                $output .= '<div class="filter-chevron">';
-                    $output .= '<i class="fal fa-chevron-down"></i>';
-                $output .= '</div>';
-    
-                $output .= '</div>';
+
             }
         }
     
