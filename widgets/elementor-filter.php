@@ -134,7 +134,7 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 			'placeholder' => __( $this->default_label, self::$slug ),
 		]);
 
-		if($this->hide_slug) {
+		if(isset($this->hide_slug) && $this->hide_slug) {
 			$this->add_control('slug', [
 				'label' => __( 'Slug', self::$slug ),
 				'type' => \Elementor\Controls_Manager::HIDDEN,
