@@ -97,10 +97,9 @@ class AJF_Instance
      * register_grid_widget
      *
      * @param  mixed $settings
-     * @param  mixed $include_cache
      * @return void
      */
-    function register_grid_widget($settings, $include_cache=false)
+    function register_grid_widget($settings)
     {
         if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
@@ -182,10 +181,6 @@ class AJF_Instance
 			$this->register_grid($grid_type, $config);
 			$this->trigger_init($grid_type);
 
-            if($include_cache) {
-                // $this->set_cache($grid_type, $settings);
-            }
-
             return '[' . $grid_type . '-grid]';
         }
     }
@@ -194,10 +189,9 @@ class AJF_Instance
      * register_filters_widget
      *
      * @param  mixed $settings
-     * @param  mixed $include_cache
      * @return void
      */
-    function register_filters_widget($settings, $include_cache = false)
+    function register_filters_widget($settings)
     {
         if(isset($settings['source']) && !empty($settings['source'])) {
 			$source = $settings['source'];
@@ -241,18 +235,8 @@ class AJF_Instance
             $filter_data = [];
             $filter_data[$filter_slug] = $config;
 
-            // $grid_cache = $this->get_cache($grid_type);
-            // if($grid_cache) {
-            //     $this->register_grid_widget($grid_cache);
-            // }
-
-
             $this->register_filters($grid_type, $filter_data);
 			$this->trigger_init($grid_type);
-
-            if($include_cache) {
-                // $this->set_cache($grid_type, ["temp_filters" => $settings]);
-            }
 
             return '[' . $grid_type . '-filters-' . $filter_slug . ']';
         }
@@ -310,67 +294,6 @@ class AJF_Instance
         $output .= '</div>';
         return $output;
     }
-    
-    /**
-     * cache_key
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function cache_key($grid_type)
-    {
-        return 'ajf-cache-' . $grid_type;
-    }
-    
-    /**
-     * set_cache
-     *
-     * @param  mixed $grid_type
-     * @param  mixed $settings
-     * @return void
-     */
-    function set_cache($grid_type, $settings)
-    {
-        $cache = get_transient($this->cache_key($grid_type));
-        if($cache) {
-            $settings = array_merge((array) json_decode($cache), (array) $settings);
-        }
-        $encoded = json_encode($settings);
-        set_transient($this->cache_key($grid_type), $encoded);
-        return $settings;
-    }
-    
-    /**
-     * get_cache
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function get_cache($grid_type)
-    {
-        $settings = get_transient($this->cache_key($grid_type));
-        if ($settings === false) {
-            return false;
-        } else {
-            return (array) json_decode($settings);
-        }
-    }
-    
-    /**
-     * peak_cache
-     *
-     * @param  mixed $response
-     * @param  mixed $handler
-     * @param  mixed $request
-     * @return void
-     */
-    function peak_cache( $response, $handler, WP_REST_Request $request )
-    {
-        $params = $request->get_params();
-        if(isset($params["post_type"]) && !empty($params["post_type"])){
-            $this->register_from_cache($params["post_type"]);
-        }
-    }
 
     function peak_settings( $response, $handler, WP_REST_Request $request )
     {
@@ -388,29 +311,6 @@ class AJF_Instance
             
             foreach($filters as $filter) {
                 $this->register_filters_widget((array) $filter);
-            }
-        }
-    }
-    
-    /**
-     * register_from_cache
-     *
-     * @param  mixed $grid_type
-     * @return void
-     */
-    function register_from_cache($grid_type)
-    {
-        $settings = $this->get_cache($grid_type);
-        if($settings) {
-            $temp_filters = null;
-            if(isset($settings["temp_filters"])) {
-                $temp_filters = $settings["temp_filters"];
-                unset($settings["temp_filters"]);
-            }
-            $this->register_grid_widget($settings);
-
-            if($temp_filters) {
-                $this->register_filters_widget((array) $temp_filters);
             }
         }
     }
@@ -515,10 +415,11 @@ class AJF_Instance
             foreach ($filters as $filter_key => $filter_data) {
                 if ($filter_data->type === "select") {
                     $filters[$filter_key]->options = array_unique($filter_data->options);
-                    sort($filter_data->options);
+                    if(isset($filter_data->sort) && $filter_data->sort !== false) {
+                        sort($filter_data->options);
+                    }
                 };
             }
-
 
             return $filters;
         }
@@ -540,9 +441,28 @@ class AJF_Instance
             $details = (array) $details;
         } else {
             $default_fields = get_post($id, ARRAY_A);
+
+
+            $tax_types = get_object_taxonomies( array( 'page', 'post', $default_fields['post_type'] ), 'names' );
+
+            foreach($tax_types as $tax_type) {
+                $tax_html = '';
+
+                $terms = get_the_terms($id, $tax_type);
+                if(!empty($terms)) {
+                    foreach($terms as $term) {
+                        $tax_html .= '<span class="tag">' . $term->name . '</span>';
+                    }
+                }
+
+                $default_fields[$tax_type . '_list'] = $tax_html;
+            }
+
+        
+            $categories_html = var_export($categories_html, true);
             $extra_fields = [
                 'thumbnail' => get_the_post_thumbnail_url($id, 'full'),
-                'permalink' => get_the_permalink($id)
+                'permalink' => get_the_permalink($id),
             ];
             $acf_fields = get_fields($id);
             $acf_fields = isset($acf_fields) && !empty($acf_fields) ? $acf_fields : [];
@@ -684,7 +604,11 @@ class AJF_Instance
 
         $output = '';
     
-        $output .= '<div class="filter-option">';
+        if($filter->type === "hidden") {
+            $output .= '<div class="filter-option hidden">';
+        } else {
+            $output .= '<div class="filter-option">';
+        }
     
         if ($filter_key === "s" || $filter_key === "search") {
             $output .= '<div class="filter-option-error">`' . $filter_key . '` property is not allowed in filters. To fix please capitalize or change.</div>';
@@ -694,7 +618,15 @@ class AJF_Instance
             }
 
             $default_props = ' id="' . $grid_type . '-filter-' . $filter_key . '" class="filter-value" data-type="' . $filter_key . '" data-post-type="' . $grid_type . '" data-input-type="' . $filter->type . '"';
-    
+
+            if (isset($filter->props)) {
+                $default_props .= ' ' . $filter->props;
+            }
+
+            if(isset($filter->autocomplete) && $filter->autocomplete !== true) {
+                $default_props .= ' autocomplete="off" data-lpignore="true" data-form-type="other"';
+            }
+
             if(isset($filter->extra_atts)) {
                 $default_props .= ' ' . $this->html_attributes($filter->extra_atts);
             }
@@ -706,7 +638,7 @@ class AJF_Instance
             $get_multi = explode("--", $get_value);
     
             $is_multi = count($get_multi) > 1;
-    
+
             if ($filter->type === "clear") {
                 $output .= '<div class="filter-text-wrapper clear-filter">';
                 $output .= '<a href="javascript: void(0);"' . $default_props . '>' . $filter->name . '</a>';
@@ -715,39 +647,73 @@ class AJF_Instance
                 $output .= '<div class="filter-text-wrapper">';
                 $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="text"' . $default_props . ' placeholder="' . (isset($filter->placeholder) ? $filter->placeholder : "") . '"/>';
                 $output .= '</div>';
+            } else if ($filter->type === "hidden") {
+                $output .= '<div class="filter-hidden-wrapper">';
+                $output .= '<input value="' . (isset($get_value) ? $get_value : '') . '" type="hidden"' . $default_props . ' hidden/>';
+                $output .= '</div>';
             } else if ($filter->type === "checkbox") {
                 $output .= '<div class="filter-text-wrapper">';
                 $output .= '<input type="checkbox"' . $default_props . ' ' . (isset($get_value) && $get_value === "true" ? 'checked' : '') . '/>';
                 $output .= '</div>';
             } else if ($filter->type === "select") {
-                if (isset($filter->multi) && $filter->multi === true) {
-                    $default_props .= ' multiple';
+
+                $select_style = "select";
+                if(isset($filter->style)) {
+                    $select_style = $filter->style;
                 }
-                $output .= '<div class="filter-select-wrapper">';
-                if (isset($filter->icon)) {
-                    $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
-                }
-                $output .= '<select' . $default_props . '>';
-                if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
-                    if($filter_key !== "count") {
-                        $output .= '<option value="">Any</option>';
+
+                if($select_style === "select") {
+                    if (isset($filter->multi) && $filter->multi === true) {
+                        $default_props .= ' multiple';
                     }
-                }
-    
-                foreach ($filter->options as $option) {
-                    $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
-                    if ($is_multi) {
-                        $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                    $output .= '<div class="filter-select-wrapper">';
+                    if (isset($filter->icon)) {
+                        $output .= '<div class="filter-icon" style="background-image: url(' . $filter->icon . ')"></div>';
                     }
-                    $output .= '<option value="' . $option . '" ' . $is_selected . '>' . $option . '</option>';
+                    $output .= '<select' . $default_props . '>';
+                    if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
+                        if($filter_key !== "count") {
+                            $output .= '<option value="">Any</option>';
+                        }
+                    }
+        
+                    foreach ($filter->options as $option) {
+                        $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
+                        if ($is_multi) {
+                            $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                        }
+                        $output .= '<option value="' . $option . '" ' . $is_selected . '>' . $option . '</option>';
+                    }
+                    $output .= '</select>';
+        
+                    $output .= '<div class="filter-chevron">';
+                        $output .= '<i class="fal fa-chevron-down"></i>';
+                    $output .= '</div>';
+        
+                    $output .= '</div>';
+                } else if($select_style === "buttons") {
+                    $output .= '<div class="filter-buttons-wrapper">';
+
+                    if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
+                        if($filter_key !== "count") {
+                            $output .= '<div class="filter-button-wrapper">';
+                                $output .= '<button class="filter-button">Any</button>';
+                            $output .= '</div>';
+                        }
+                    }
+
+                    foreach ($filter->options as $option) {
+                        $is_selected = (isset($get_value) && $get_value === $option ? 'selected' : '');
+                        if ($is_multi) {
+                            $is_selected = in_array($option, $get_multi) ? 'selected' : '';
+                        }
+                        $output .= '<div class="filter-button-wrapper">';
+                            $output .= '<button class="filter-button" data-value="' . $option . '" ' . $is_selected . '>' . $option . '</button>';
+                        $output .= '</div>';
+                    }
+                    $output .= '</div>';
                 }
-                $output .= '</select>';
-    
-                $output .= '<div class="filter-chevron">';
-                $output .= '<i class="fal fa-chevron-down"></i>';
-                $output .= '</div>';
-    
-                $output .= '</div>';
+
             }
         }
     
@@ -781,6 +747,18 @@ class AJF_Instance
                         unset($atts[$filter_key]);
                     }
                 }
+
+                if(isset($filter->calc)) {
+                    $atts[$filter_key] = ($filter->calc)($atts, $details);
+                }
+
+                if(isset($filter->before_match)) {
+                    $before_match_var = ($filter->before_match)($atts, $details);
+                    if(!empty($before_match_var)) {
+                        $details = $before_match_var;
+                    }
+                }
+
                 if (isset($filter->matches)) {
                     if (!($filter->matches)($atts, $details)) {
                         $matches = false;
@@ -979,7 +957,7 @@ class AJF_Instance
         $footer = is_callable($footer) ? ($footer)($items) : $footer;
     
         $output .= $prepend;
-    
+
         if (count($items) > 0) {
             $output .= '<' . $as . ' class="' . $container_class . '">';
             $output .= $header;
@@ -989,6 +967,7 @@ class AJF_Instance
                     $details["index"] = $itemIndex;
 
                     if(is_string($grid_data["render"])) {
+
                         $output .= $this->render_from_template($grid_data["render"], $details);
                     } else {
                         $output .= ($grid_data["render"])($details, $atts);
@@ -1026,6 +1005,11 @@ class AJF_Instance
         }
     
         $response = ["html" => $output];
+
+
+        if($grid_data["filters"]) {
+            $response["filters"] = $grid_data["filters"];
+        }
     
         if ((isset($grid_data["include_items"]) && $grid_data["include_items"] === true) || $include_items === true) {
             $response["items"] = $items;

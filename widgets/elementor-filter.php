@@ -111,7 +111,7 @@ class Elementor_AJF_Filter_Widget extends \Elementor\Widget_Base {
 			'type' => \Elementor\Controls_Manager::TEXT,
 			'default' => __( '', self::$slug ),
 			'placeholder' => __( '', self::$slug ),
-			'description' => 'This should be the same as the ID of the AJF Grid these filters should control.',
+			'description' => 'This should be the same as the ID of the AJF Grid this filter will control.',
 		]);
 
 		$this->end_controls_section();

@@ -29,7 +29,7 @@ class AJF_class {
 
 	init() {
 		const $this = this;
-
+		this.url_change = true;
 		$(".archive-container").each(function() {
 			const post_type = $(this).attr("data-post-type");
 			const default_post_count = parseInt($(this).attr("data-post-count"));
@@ -110,6 +110,21 @@ class AJF_class {
 						post_type
 					}
 				});
+
+				if($this.post_types[post_type].is_widget) {
+					$this.tempUnbind();
+					$this.load(post_type, false).then(res => {
+						if(res.filters) {
+							for(const filter_type in res.filters) {
+								const filter = res.filters[filter_type];
+								if(filter.type === "select") {
+									$this.populateSelect(post_type, filter_type, filter.options);
+								}
+							}
+						}
+						$this.tempBind();
+					})
+				}
 			}
 		});
 	}
@@ -188,6 +203,23 @@ class AJF_class {
 		}
 
 		this.post_types[post_type].values[data.key] = data;
+	}
+
+	populateSelect(post_type, filter_type, options) {
+		const filter = $(".filter-value[data-type='" + filter_type + "'][data-post-type='" + post_type + "']");
+		const cur_url = new URL(document.location);
+		const filter_param = cur_url.searchParams.get(filter_type);
+		filter.html("");
+		options.forEach(option => {
+			const $option = $("<option>");
+			if(filter_param === option.toString()) {
+				$option.attr("selected", "selected");
+			}
+			$option.attr("value", option);
+			$option.html(option);
+
+			filter.append($option);
+		})
 	}
 
 	getAll(post_type) {
@@ -357,7 +389,9 @@ class AJF_class {
 			}
 		});
 
-		history.replaceState({}, '', archive_url.search);
+		if(this.url_change) {
+			history.replaceState({}, '', archive_url.search);
+		}
 	}
 
 	async load(post_type, render=true) {
@@ -390,7 +424,10 @@ class AJF_class {
 			}
 
 			if($this.post_types[post_type].settings) {
+				archive_url.searchParams.set('is_widget', true);
 				archive_url.searchParams.set('_settings_', JSON.stringify($this.post_types[post_type].settings));
+			} else {
+				archive_url.searchParams.set('is_widget', false);
 			}
 
 			const params = archive_url.searchParams;
@@ -488,6 +525,19 @@ class AJF_class {
 		} else {
 			this.event_listeners[type].unshift(fn);
 		}
+	}
+
+	tempUnbind() {
+		this.url_change = false;
+		const temp = this.event_listeners;
+		this.event_listeners = {};
+		this.temp_event_listeners = temp;
+	}
+
+	tempBind() {
+		this.url_change = true;
+		this.event_listeners = this.temp_event_listeners;
+		this.temp_event_listeners = null;
 	}
 	
 	trigger(type, params={}) {
