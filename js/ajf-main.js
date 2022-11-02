@@ -34,7 +34,10 @@ class AJF_class {
 			const post_type = $(this).attr("data-post-type");
 			const default_post_count = parseInt($(this).attr("data-post-count"));
 			// const no_cache = $(this).attr("data-no-cache") === "true" ? true : false;
-			const no_cache = elementorFrontend.isEditMode();
+			let no_cache;
+			if(window.elementorFrontend && elementorFrontend.isEditMode()) {
+				no_cache = elementorFrontend.isEditMode();
+			}
 			const is_widget = $(this).attr("data-is-widget") === "true" ? true : false;
 			const grid_settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			const default_page = $(this).attr("data-page") ? parseInt($(this).attr("data-page")) : 1;
@@ -58,9 +61,13 @@ class AJF_class {
 			$this.setFilterValue(this, false);
 		});
 
+		this.getPostType = function(el) {
+			return $(el).attr("data-post-type") || $(el).closest("[data-post-type]").attr("data-post-type");
+		}
+
 		this.bindFilterChange = function() {
 			const data = $this.setFilterValue(this);
-			const post_type = $(this).attr("data-post-type");
+			const post_type = $this.getPostType(this);
 
 			if(!$this.post_types[post_type]) {
 				return;
@@ -77,12 +84,12 @@ class AJF_class {
 		};
 
 		this.bindClear = function() {
-			const post_type = $(this).attr("data-post-type");
+			const post_type = $this.getPostType(this);
 			$this.clear(post_type);
 		};
 
 		this.bindViewMore = function() {
-			const post_type = $(this).attr("data-post-type");		
+			const post_type = $this.getPostType(this);		
 			$this.trigger("load-more", {
 				data: {
 					post_type
@@ -92,7 +99,7 @@ class AJF_class {
 
 		this.bindPagination = function(e) {
 			e.preventDefault();
-			const post_type = $(this).attr("data-post-type");
+			const post_type = $this.getPostType(this);
 			const page_num = parseInt($(this).attr("data-page"));
 			$this.trigger("page-change", { data: {
 				post_type,
@@ -131,6 +138,7 @@ class AJF_class {
 
 	bindAllEvents() {
 		$(document).on("change", ".filter-value", this.bindFilterChange);
+		$(document).on("click", ".filter-buttons-wrapper[data-style-type='buttons'] .filter-button", this.bindFilterChange);
 		$(document).on("click", ".filter-value[data-type='clear']", this.bindClear);
 		$(document).on("click", ".view-more-container .view-more-button", this.bindViewMore);
 		$(document).on("click", ".pagination-grid .pagination-num", this.bindPagination);
@@ -139,6 +147,7 @@ class AJF_class {
 
 	unbindAllEvents() {
 		$(document).off("change", ".filter-value", this.bindFilterChange);
+		$(document).off("click", ".filter-buttons-wrapper[data-style-type='buttons'] .filter-button", this.bindFilterChange);
 		$(document).off("click", ".filter-value[data-type='clear']", this.bindClear);
 		$(document).off("click", ".view-more-container .view-more-button", this.bindViewMore);
 		$(document).off("click", ".pagination-grid .pagination-num", this.bindPagination);
@@ -153,7 +162,7 @@ class AJF_class {
 	getFilterSettings() {
 		const $this = this;
 		$(".filter-value").each(function() {
-			const post_type = $(this).attr("data-post-type");
+			const post_type = $this.getPostType(this);
 			const name = $(this).attr("data-type");
 			const settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			$this.post_types[post_type].settings.filters[name] = settings;
@@ -161,7 +170,7 @@ class AJF_class {
 	}
 
 	setFilterValue(el, shouldReset=true) {
-		const post_type = $(el).attr("data-post-type");
+		const post_type = this.getPostType(el);
 		if(!this.post_types[post_type]) {
 			console.error("Post type not found");
 			return;

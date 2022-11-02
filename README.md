@@ -105,7 +105,7 @@ register_filters("post", [
         "name" => "Search",
         "type" => "text",
         "matches" => function ($atts, $details) {
-            return wp_ajf_contains($atts["query"], $details["title"]);
+            return match_contains($atts["query"], $details["title"]);
         },
     ]
 ]);
@@ -331,7 +331,7 @@ register_filters_template("ajf-post", [
         "name" => "Search",
         "type" => "text",
         "matches" => function ($atts, $details) {
-            return wp_ajf_contains($atts["query"], $details["post_title"]);
+            return match_contains($atts["query"], $details["post_title"]);
         },
     ],
 ]);

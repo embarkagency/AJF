@@ -402,6 +402,10 @@ class AJF_Instance
                     'post_status' => 'publish',
                     'posts_per_page' => -1,
                 );
+
+                if(isset($grid_data["data_params"])) {
+                    $args = array_merge($args, $grid_data["data_params"]);
+                }
         
                 $loop = new WP_Query($args);
                 while ($loop->have_posts()): $loop->the_post();
@@ -623,6 +627,10 @@ class AJF_Instance
                 $default_props .= ' ' . $filter->props;
             }
 
+            if( isset($filter->style) ) {
+                $default_props .= ' data-style-type="' . $filter->style . '"';
+            }
+
             if(isset($filter->autocomplete) && $filter->autocomplete !== true) {
                 $default_props .= ' autocomplete="off" data-lpignore="true" data-form-type="other"';
             }
@@ -692,12 +700,12 @@ class AJF_Instance
         
                     $output .= '</div>';
                 } else if($select_style === "buttons") {
-                    $output .= '<div class="filter-buttons-wrapper">';
+                    $output .= '<div' . $default_props . ' class="filter-buttons-wrapper">';
 
                     if (!isset($filter->has_any) || (isset($filter->has_any) && $filter->has_any !== false)) {
                         if($filter_key !== "count") {
                             $output .= '<div class="filter-button-wrapper">';
-                                $output .= '<button class="filter-button">Any</button>';
+                                $output .= '<button class="filter-value">Any</button>';
                             $output .= '</div>';
                         }
                     }
@@ -708,7 +716,7 @@ class AJF_Instance
                             $is_selected = in_array($option, $get_multi) ? 'selected' : '';
                         }
                         $output .= '<div class="filter-button-wrapper">';
-                            $output .= '<button class="filter-button" data-value="' . $option . '" ' . $is_selected . '>' . $option . '</button>';
+                            $output .= '<button class="filter-value" data-value="' . $option . '" ' . $is_selected . '>' . $option . '</button>';
                         $output .= '</div>';
                     }
                     $output .= '</div>';
@@ -876,14 +884,19 @@ class AJF_Instance
                 $items = $this->run_filter($grid_data, $items, $details, $atts);
             }
         } else {
-            $loop = new WP_Query([
+            $args = [
                 's' => null,
                 'post_type' => $post_type,
                 'post_status' => 'publish',
                 'posts_per_page' => -1,
                 'orderby' => 'menu_order',
                 'order' => 'ASC',
-            ]);
+            ];
+
+            if(isset($grid_data["data_params"])) {
+                $args = array_merge($args, $grid_data["data_params"]);
+            }
+            $loop = new WP_Query($args);
     
             while ($loop->have_posts()): $loop->the_post();
                 $id = get_the_ID();
