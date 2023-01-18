@@ -24,6 +24,12 @@ class AJF_class {
 			this.load(post_type);
 		}, true);
 
+		this.on('fetch', async ({ url }) => {
+			const req = await fetch(url);
+			const res = await req.json();
+			return res;
+		});
+
 		this.init();
 	}
 
@@ -33,11 +39,8 @@ class AJF_class {
 		$(".archive-container").each(function() {
 			const post_type = $(this).attr("data-post-type");
 			const default_post_count = parseInt($(this).attr("data-post-count"));
-			// const no_cache = $(this).attr("data-no-cache") === "true" ? true : false;
-			let no_cache;
-			if(window.elementorFrontend && elementorFrontend.isEditMode()) {
-				no_cache = elementorFrontend.isEditMode();
-			}
+			const no_cache = $(this).attr("data-no-cache") === "true" ? true : false;
+// 			const no_cache = elementorFrontend.isEditMode();
 			const is_widget = $(this).attr("data-is-widget") === "true" ? true : false;
 			const grid_settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			const default_page = $(this).attr("data-page") ? parseInt($(this).attr("data-page")) : 1;
@@ -61,13 +64,9 @@ class AJF_class {
 			$this.setFilterValue(this, false);
 		});
 
-		this.getPostType = function(el) {
-			return $(el).attr("data-post-type") || $(el).closest("[data-post-type]").attr("data-post-type");
-		}
-
 		this.bindFilterChange = function() {
 			const data = $this.setFilterValue(this);
-			const post_type = $this.getPostType(this);
+			const post_type = $(this).attr("data-post-type");
 
 			if(!$this.post_types[post_type]) {
 				return;
@@ -84,12 +83,12 @@ class AJF_class {
 		};
 
 		this.bindClear = function() {
-			const post_type = $this.getPostType(this);
+			const post_type = $(this).attr("data-post-type");
 			$this.clear(post_type);
 		};
 
 		this.bindViewMore = function() {
-			const post_type = $this.getPostType(this);		
+			const post_type = $(this).attr("data-post-type");		
 			$this.trigger("load-more", {
 				data: {
 					post_type
@@ -99,7 +98,7 @@ class AJF_class {
 
 		this.bindPagination = function(e) {
 			e.preventDefault();
-			const post_type = $this.getPostType(this);
+			const post_type = $(this).attr("data-post-type");
 			const page_num = parseInt($(this).attr("data-page"));
 			$this.trigger("page-change", { data: {
 				post_type,
@@ -138,7 +137,6 @@ class AJF_class {
 
 	bindAllEvents() {
 		$(document).on("change", ".filter-value", this.bindFilterChange);
-		$(document).on("click", ".filter-buttons-wrapper[data-style-type='buttons'] .filter-button", this.bindFilterChange);
 		$(document).on("click", ".filter-value[data-type='clear']", this.bindClear);
 		$(document).on("click", ".view-more-container .view-more-button", this.bindViewMore);
 		$(document).on("click", ".pagination-grid .pagination-num", this.bindPagination);
@@ -147,7 +145,6 @@ class AJF_class {
 
 	unbindAllEvents() {
 		$(document).off("change", ".filter-value", this.bindFilterChange);
-		$(document).off("click", ".filter-buttons-wrapper[data-style-type='buttons'] .filter-button", this.bindFilterChange);
 		$(document).off("click", ".filter-value[data-type='clear']", this.bindClear);
 		$(document).off("click", ".view-more-container .view-more-button", this.bindViewMore);
 		$(document).off("click", ".pagination-grid .pagination-num", this.bindPagination);
@@ -162,7 +159,7 @@ class AJF_class {
 	getFilterSettings() {
 		const $this = this;
 		$(".filter-value").each(function() {
-			const post_type = $this.getPostType(this);
+			const post_type = $(this).attr("data-post-type");
 			const name = $(this).attr("data-type");
 			const settings = JSON.parse(($(this).attr("data-settings") ? $(this).attr("data-settings") : "{}"));
 			$this.post_types[post_type].settings.filters[name] = settings;
@@ -170,7 +167,7 @@ class AJF_class {
 	}
 
 	setFilterValue(el, shouldReset=true) {
-		const post_type = this.getPostType(el);
+		const post_type = $(el).attr("data-post-type");
 		if(!this.post_types[post_type]) {
 			console.error("Post type not found");
 			return;
@@ -450,15 +447,14 @@ class AJF_class {
 				},
 			});
 
-			fetch(archive_url.toString(), {
-				method: "GET",
-				// headers: new Headers({
-				// 	'Content-Type': 'application/json;charset=UTF-8',
-				// }),
-				// body: JSON.stringify({"_settings_": $this.post_types[post_type].settings})
-			})
-			.then(r => r.json())
-			.then(r => {
+			$this.trigger('fetch', {
+				data: {
+					post_type,
+					url: archive_url.toString(),
+					params,
+					filters: atts
+				},
+			}, (r) => {
 				$this.trigger("load", {
 					data: {
 						post_type,
@@ -529,7 +525,10 @@ class AJF_class {
 			this.event_listeners[type] = [];
 		}
 
-		if(toEnd) {
+		if(toEnd === "override") {
+			this.event_listeners[type] = [fn];
+			return;
+		} else if(toEnd) {
 			this.event_listeners[type].push(fn);
 		} else {
 			this.event_listeners[type].unshift(fn);
@@ -549,15 +548,20 @@ class AJF_class {
 		this.temp_event_listeners = null;
 	}
 	
-	trigger(type, params={}) {
+	async trigger(type, params={}, callback) {
 		if(this.event_listeners[type]) {	
 			for(let i = 0; i < this.event_listeners[type].length; i++) {
 				const event_listener = this.event_listeners[type][i];
 
-				if(typeof event_listener === "function") {
+				if(typeof callback === "function") {
+					const res = await (event_listener.bind(this)(...Object.values(params)));
+					callback(res);
+				} else if(typeof event_listener === "function") {
 					const shouldBreak = event_listener.bind(this)(...Object.values(params));
-					if(shouldBreak) {
-						break;
+					if(typeof shouldBreak === "boolean") {
+						if(shouldBreak) {
+							break;
+						}
 					}
 				}
 			}
