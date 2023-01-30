@@ -522,8 +522,12 @@ class AJF_Instance
      * @param  mixed $filters
      * @return void
      */
-    function register_filters($grid_type, $filters)
+    function register_filters($grid_type, $filters, $template_config = [])
     {
+        if (is_string($filters) && isset($this->templates[$filters]["temp_filters"])) {
+            $filters = array_merge($this->templates[$filters]["temp_filters"], $template_config);
+        }
+
         if (!isset($this->grids[$grid_type])) {
             $this->grids[$grid_type] = [];
         }
@@ -1397,15 +1401,15 @@ function register_grid_template($grid_type, $default_data = [])
     global $AJF;
     return $AJF->register_grid_template($grid_type, $default_data);
 }
-function register_filters($grid_type, $filters)
+function register_filters($grid_type, $filters, $template_config = [])
 {
     global $AJF;
-    return $AJF->register_filters($grid_type, $filters);
+    return $AJF->register_filters($grid_type, $filters, $template_config);
 }
-function register_filters_template($grid_type, $filters)
+function register_filters_template($grid_type, $default_data = [])
 {
     global $AJF;
-    return $AJF->register_filters_template($grid_type, $filters);
+    return $AJF->register_filters_template($grid_type, $default_data);
 }
 function get_grid_data($grid_type, $atts = [])
 {

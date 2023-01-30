@@ -499,6 +499,7 @@ class AJF_class {
 							total: r.total,
 							items: r.items || [],
 							response: r,
+							filters: atts,
 							url: archive_url.toString(),
 							params,
 						}
